@@ -3,3 +3,4 @@
 .python-version
 .pre-commit-config.yaml
 pycache/
+__pycache__/
