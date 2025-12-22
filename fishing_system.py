@@ -1,37 +1,44 @@
 import asyncio
 import spade
-from src import FisherAgent, OwnerAgent
+from src import FisherAgent, OwnerAgent, WaterCaretakerAgent
+
+SYSTEM_NAME = "SYSTEM"
 
 
 async def main():
-    # Dane logowania – musisz wcześniej założyć konta na serwerze XMPP
     owner_jid = "owner@localhost"
     owner_password = ""
 
     fisher_jid = "fisher@localhost"
     fisher_password = ""
 
-    # Tworzymy agenty
-    owner = OwnerAgent(owner_jid, owner_password)
-    fisher = FisherAgent(fisher_jid, fisher_password, owner_jid)
+    water_caretaker_jid = "water_caretaker@localhost"
+    water_caretaker_password = ""
 
-    # Wstrzykujemy JID ownera do fishera (nasza „konfiguracja protokołu”)
+    fish_caretaker_jid = "fish_caretaker@localhost"
+    fish_caretaker_password = ""
+
+    owner = OwnerAgent(owner_jid, owner_password, fisher_jid, water_caretaker_jid)
+    fisher = FisherAgent(fisher_jid, fisher_password, owner_jid)
+    water_caretaker = WaterCaretakerAgent(
+        water_caretaker_jid, water_caretaker_password, owner_jid, logs_out=True
+    )
 
     # Start agentów
-    agent_list = [owner, fisher]
+    agent_list = [owner, fisher, water_caretaker]
     await spade.start_agents(agent_list)
 
-    print("[SYSTEM] Agenci wystartowali (Owner i Fisher).")
+    print(f"[{SYSTEM_NAME}] Agenci wystartowali ({agent_list}).")
 
     # Czekamy, aż Fisher się zakończy
     while owner.is_alive():
         await asyncio.sleep(1)
-        if not fisher.is_alive():
-            print("[SYSTEM] Fisher zakończył pracę, zatrzymuję Ownera.")
-            await owner.stop()
-            break
+        # if not fisher.is_alive():
+        #     print(f"[{SYSTEM_NAME}] Fisher zakończył pracę, zatrzymuję Ownera.")
+        #     await owner.stop()
+        #     break
 
-    print("[SYSTEM] Koniec.")
+    print(f"[{SYSTEM_NAME}] Koniec.")
 
 
 if __name__ == "__main__":

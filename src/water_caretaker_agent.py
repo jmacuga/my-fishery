@@ -1,26 +1,86 @@
-import spade
+import asyncio
+import math
+
 from spade.agent import Agent
 from spade.behaviour import PeriodicBehaviour
+from spade.message import Message
+
+from random import normalvariate
+
+
+def get_ph_data():
+    return normalvariate(0, 5)  # mock normal distribution
+
+
+def calculate_z_score(ph_data, n=10) -> dict:
+    if len(ph_data) < 2:
+        return None
+
+    recent_data = ph_data[-n:]
+
+    mean = sum(recent_data) / len(recent_data)
+
+    variance = sum((x - mean) ** 2 for x in recent_data) / len(recent_data)
+    std_dev = math.sqrt(variance)
+
+    if std_dev == 0:
+        z_score = 0.0
+    else:
+        z_score = (recent_data[-1] - mean) / std_dev
+
+    return z_score
 
 
 class WaterCaretakerAgent(Agent):
+    def __init__(self, jid, password, owner_jid, logs_out=True):
+        super().__init__(jid, password)
+
+        self.owner_jid = owner_jid
+        self.logs_out = logs_out
+
+        self.ph_data = []
+
+        self.last_values = 10
+        self.z_score_alert = 1.1
+
     class WaterQualityMeasureBehaviour(PeriodicBehaviour):
         async def run(self):
-            pass
+            await self.collect_data()
 
-        def calculate_quality(self):
-            return 0
+        def aeration(self):
+            if self.agent.logs_out:
+                print(f"[{self.agent.__class__.__name__}] Aeration started (pump ON)")
 
-        async def aeration(self):
-            print(f"[{self.__class__.__name__}] Aeration started (pump ON)")
+        async def send_water_quality_alarm(self, z_score):
+            if self.agent.logs_out:
+                print(f"[{self.agent.__class__.__name__}] ALERT: Unusual pH change!")
+
+            msg = Message(
+                to=self.agent.owner_jid,
+                body=f"Water quality alarm, z_score value: {z_score}",
+                metadata={"performative": "alarm", "protocol": "water-quality-alarm"},
+            )
+            await self.send(msg)
+
+            self.aeration()
 
         async def collect_data(self):
-            pass
+            ph_data = get_ph_data()
+            if self.agent.logs_out:
+                print(f"[{self.agent.__class__.__name__}] collected data: {ph_data}")
 
-        async def send_water_quality_alarm(self):
-            pass
+            self.agent.ph_data.append(ph_data)
+            await self.calculate_quality()
+
+            await asyncio.sleep(1)
+
+        async def calculate_quality(self):
+            z_score = calculate_z_score(self.agent.ph_data, self.agent.last_values)
+            if z_score is not None and abs(z_score) > self.agent.z_score_alert:
+                await self.send_water_quality_alarm(z_score)
 
     async def setup(self):
-        print(f"[{self.__class__.__name__}] setup")
-        b = self.WaterQualityMeasureBehaviour()
+        if self.logs_out:
+            print(f"[{self.__class__.__name__}] setup")
+        b = self.WaterQualityMeasureBehaviour(period=2)
         self.add_behaviour(b)
