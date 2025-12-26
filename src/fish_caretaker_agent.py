@@ -43,7 +43,6 @@ class FishCaretakerAgent(Agent):
                     species = fish_data.get("species", "Unknown")
                     size = fish_data.get("size", "Unknown")
                     mass = fish_data.get("mass", 0)
-                    action = fish_data.get("action", "Unknown")  # "take" or "release"
                     time = fish_data.get("time", "")
 
                     logger.info(f"[DEI] Received fish data registration from {msg.sender}: species={species}, size={size}, mass={mass}kg, action={action}, time={time}")

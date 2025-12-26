@@ -168,7 +168,6 @@ class FisherAgent(Agent):
                 fish_table.add_column("Species", style="green")
                 fish_table.add_column("Size", style="yellow")
                 fish_table.add_column("Mass (kg)", style="magenta")
-                fish_table.add_column("Action", style="red")
                 
                 for i, fish in enumerate(self.agent.fishes_caught, 1):
                     fish_table.add_row(
@@ -176,7 +175,6 @@ class FisherAgent(Agent):
                         fish['species'],
                         fish['size'],
                         str(fish['mass']),
-                        fish['action']
                     )
                 
                 console.print(fish_table)
@@ -212,7 +210,7 @@ class FisherAgent(Agent):
             console.print("[cyan]Permission request sent. Waiting for response...[/cyan]")
 
         async def register_fish_data(
-            self, species: str, size: str, mass: float, action: str
+            self, species: str, size: str, mass: float
         ):
             """Register fish data with DEI/FishCaretakerAgent (asynchronous - response handled separately)"""
             if not self.agent.fish_caretaker_jid:
@@ -223,7 +221,6 @@ class FisherAgent(Agent):
                 "species": species,
                 "size": size,
                 "mass": mass,
-                "action": action,  # "take" or "release"
                 "time": datetime.now().isoformat(),
             }
 
@@ -235,7 +232,7 @@ class FisherAgent(Agent):
                     "protocol": "register-fish-data",
                 },
             )
-            logger.info(f"Registering fish data: {species} - {action}")
+            logger.info(f"Registering fish data: {species}")
             self.agent.pending_fish_data_registration = fish_data
             await self.send(msg)
 
@@ -251,7 +248,6 @@ class FisherAgent(Agent):
                             [
                                 f
                                 for f in self.agent.fishes_caught
-                                if f["action"] == "take"
                             ]
                         ),
                         "exit_time": datetime.now().isoformat(),
@@ -323,8 +319,8 @@ class FisherAgent(Agent):
                                 await self.register_fish_data(
                                     fish_data["species"], 
                                     fish_data["size"], 
-                                    fish_data["mass"], 
-                                    "take"
+                                    fish_data["mass"]
+                                    
                                 )
                             
                                 self.agent.fishes_caught.append(
@@ -332,7 +328,6 @@ class FisherAgent(Agent):
                                         "species": fish_data["species"],
                                         "size": fish_data["size"],
                                         "mass": fish_data["mass"],
-                                        "action": "take",
                                         "time": datetime.now().isoformat(),
                                     }
                                 )
@@ -346,32 +341,24 @@ class FisherAgent(Agent):
                                 fish_data["species"], 
                                 fish_data["size"], 
                                 fish_data["mass"], 
-                                "take"
                             )
                             self.agent.fishes_caught.append(
                                 {
                                     "species": fish_data["species"],
                                     "size": fish_data["size"],
                                     "mass": fish_data["mass"],
-                                    "action": "take",
                                     "time": datetime.now().isoformat(),
                                 }
                             )
                     elif performative == "disconfirm":
                         console.print("[bold red]✗ \nPermission denied to take fish.[/bold red]")
                         logger.info(f"Permission denied, releasing fish: {fish_data['species']}")
-                        # Register release
-                        await self.register_fish_data(
-                            fish_data["species"], 
-                            fish_data["size"], 
-                            fish_data["mass"], 
-                            "release"
-                        )
+                        
                     else:
                         console.print(f"[yellow]\nUnknown response: {performative}[/yellow]")
                         logger.warning(f"Unknown response performative: {performative}")
         
-        async def register_fish_data(self, species: str, size: str, mass: float, action: str):
+        async def register_fish_data(self, species: str, size: str, mass: float):
             """Helper method to register fish data"""
             if not self.agent.fish_caretaker_jid:
                 return
@@ -380,7 +367,6 @@ class FisherAgent(Agent):
                 "species": species,
                 "size": size,
                 "mass": mass,
-                "action": action,
                 "time": datetime.now().isoformat(),
             }
             
@@ -392,7 +378,7 @@ class FisherAgent(Agent):
                     "protocol": "register-fish-data",
                 },
             )
-            logger.info(f"Registering fish data: {species} - {action}")
+            logger.info(f"Registering fish data: {species}")
             self.agent.pending_fish_data_registration = fish_data
             await self.send(msg)
         
