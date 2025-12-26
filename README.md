@@ -32,9 +32,11 @@ sudo prosodyctl adduser fish_caretaker@localhost
 ### Run
 
 sudo mkdir -p /run/prosody
+
 sudo chown prosody:prosody /run/prosody
 
 sudo prosodyctl start
+
 sudo prosodyctl status
 
 ### Running the System
