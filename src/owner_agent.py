@@ -8,10 +8,9 @@ logger = get_logger("OwnerAgent")
 
 
 class OwnerAgent(Agent):
-    def __init__(self, jid, password, fisher_jid, water_caretaker_jid):
+    def __init__(self, jid, password, water_caretaker_jid):
         super().__init__(jid, password)
 
-        self.fisher_jid = fisher_jid  # Legacy: kept for backward compatibility
         self.water_caretaker_jid = water_caretaker_jid
 
         # Track active fishermen by JID to prevent double-counting
