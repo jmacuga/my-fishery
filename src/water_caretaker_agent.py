@@ -6,6 +6,9 @@ from spade.behaviour import PeriodicBehaviour
 from spade.message import Message
 
 from random import normalvariate
+from .logger_config import get_logger
+
+logger = get_logger("WaterCaretakerAgent")
 
 
 def get_ph_data():
@@ -48,12 +51,10 @@ class WaterCaretakerAgent(Agent):
             await self.collect_data()
 
         def aeration(self):
-            if self.agent.logs_out:
-                print(f"[{self.agent.__class__.__name__}] Aeration started (pump ON)")
+            logger.info("Aeration started (pump ON)")
 
         async def send_water_quality_alarm(self, z_score):
-            if self.agent.logs_out:
-                print(f"[{self.agent.__class__.__name__}] ALERT: Unusual pH change!")
+            logger.warning(f"ALERT: Unusual pH change! z_score: {z_score}")
 
             msg = Message(
                 to=self.agent.owner_jid,
@@ -66,8 +67,7 @@ class WaterCaretakerAgent(Agent):
 
         async def collect_data(self):
             ph_data = get_ph_data()
-            if self.agent.logs_out:
-                print(f"[{self.agent.__class__.__name__}] collected data: {ph_data}")
+            logger.debug(f"Collected pH data: {ph_data}")
 
             self.agent.ph_data.append(ph_data)
             await self.calculate_quality()
@@ -80,7 +80,6 @@ class WaterCaretakerAgent(Agent):
                 await self.send_water_quality_alarm(z_score)
 
     async def setup(self):
-        if self.logs_out:
-            print(f"[{self.__class__.__name__}] setup")
+        logger.info("Agent setup complete")
         b = self.WaterQualityMeasureBehaviour(period=2)
         self.add_behaviour(b)
