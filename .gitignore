@@ -4,3 +4,5 @@
 .pre-commit-config.yaml
 pycache/
 __pycache__/
+logs/
+*.log
