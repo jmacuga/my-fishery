@@ -180,7 +180,7 @@ class OwnerAgent(Agent):
             metadata={"protocol": "if-can-enter"},
         )
 
-        handle_request_behaviour = self.HandleEntranceRequestsBehaviour()
+        handle_request_behaviour = self.HandleIfCanEnterRequestBehaviour()
         self.add_behaviour(handle_request_behaviour, fisher_template)
 
     def setup_take_fish_permission(self):
@@ -190,7 +190,7 @@ class OwnerAgent(Agent):
             metadata={"protocol": "if-can-take-fish"},
         )
 
-        take_fish_behaviour = self.HandleTakeFishPermissionBehaviour()
+        take_fish_behaviour = self.HandleIfCanTakeFishBehaviour()
         self.add_behaviour(take_fish_behaviour, take_fish_template)
 
     def setup_exit_registration(self):

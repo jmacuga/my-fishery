@@ -2,12 +2,12 @@
 Main system script - runs OwnerAgent, WaterCaretaker, and FishCaretaker.
 Fisherman agents should be run separately using run_fisherman.py
 """
+import os
 import asyncio
 import spade
 from src import OwnerAgent, WaterCaretakerAgent, FishCaretakerAgent
 from src.logger_config import setup_logging, get_logger
 from dotenv import load_dotenv
-
 
 load_dotenv()
 setup_logging()
@@ -26,7 +26,7 @@ async def main():
     fish_caretaker_password = ""
 
     # Create owner and caretaker agents (no fishermen here)
-    owner = OwnerAgent(owner_jid, owner_password, "fisher1@localhost", water_caretaker_jid)
+    owner = OwnerAgent(owner_jid, owner_password, water_caretaker_jid)
     water_caretaker = WaterCaretakerAgent(
         water_caretaker_jid, water_caretaker_password, owner_jid, logs_out=True
     )
