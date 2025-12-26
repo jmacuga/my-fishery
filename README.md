@@ -42,7 +42,7 @@ The system is designed to run with separate processes for better control:
 1. **Terminal 1** - Start the main system (OwnerAgent + Caretakers):
 
    ```bash
-   python run_system.py
+   python fishing_system.py
    ```
 
    This runs the OwnerAgent, WaterCaretaker, and FishCaretaker.
