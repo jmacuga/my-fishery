@@ -284,15 +284,18 @@ class FisherAgent(Agent):
 
                 else:
                     if performative == "agree":
+                        self.register_enter()
                         console.print("[bold green]\n✓ Permission granted![/bold green] You can now enter the fishery.")
                         logger.info("Entrance permission granted")
-                        self.agent.is_on_fishery = True
                     elif performative == "refuse":
                         console.print("[bold red]\n✗ Permission denied.[/bold red] Cannot enter fishery.")
                         logger.warning("Entrance permission denied")
                     else:
                         console.print(f"[yellow]\n Unknown response: {performative}[/yellow]")
                         logger.warning(f"Unknown response performative: {performative}")
+        
+        def register_enter(self):
+            self.agent.is_on_fishery = True
 
     class HandleTakeFishResponseBehaviour(CyclicBehaviour):
         """Handle responses to take fish permission requests asynchronously"""
