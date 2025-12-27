@@ -10,7 +10,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from .logger_config import get_logger
-from .owner_agent import OwnerAgent
 
 # Rich console for UI (user-facing terminal)
 console = Console()
@@ -21,6 +20,7 @@ logger = get_logger("FisherAgent")
 
 class FisherAgent(Agent):
     IF_CAN_ENTER_REQUEST = "if_can_enter_request"
+    REGISTER_EXIT_REQUEST = "register_exit_request"
 
     def __init__(self, jid, password, owner_jid, fish_caretaker_jid=None):
         super().__init__(jid, password)
@@ -81,6 +81,7 @@ class FisherAgent(Agent):
                 elif user_input == "0":
                     console.print("[yellow]Exiting...[/yellow]")
                     logger.info("User requested exit")
+                    await self.handle_exit_fishery()
                     await self.agent.stop()
                     self.kill()
                 else:
@@ -258,7 +259,7 @@ class FisherAgent(Agent):
                 ),
                 metadata={
                     "performative": "inform",
-                    "protocol": "register-exit",
+                    "protocol": FisherAgent.REGISTER_EXIT_REQUEST,
                 },
             )
             self.agent.pending_exit_registration = True
@@ -267,9 +268,10 @@ class FisherAgent(Agent):
             # Exit registration uses 'inform' performative, acknowledgment handled separately
 
     class HandleIfCanEnterResponseBehaviour(CyclicBehaviour):
-        """Handle responses to entrance requests asynchronously"""
+        """Handle responses to entrance requests asynchronously (if_can_enter_response, register_enter)"""
         
         async def run(self):
+            from .owner_agent import OwnerAgent
             msg = await self.receive(timeout=30)
             if msg:
                 protocol = msg.metadata.get("protocol", "")
@@ -409,10 +411,11 @@ class FisherAgent(Agent):
         """Handle responses to exit registration asynchronously"""
         
         async def run(self):
+            from .owner_agent import OwnerAgent
             msg = await self.receive(timeout=30)
             if msg:
                 protocol = msg.metadata.get("protocol", "")
-                if protocol != "register-exit":
+                if protocol != OwnerAgent.REGISTER_EXIT_RESPONSE:
                     return
                     
                 performative = msg.metadata.get("performative", "")
@@ -421,6 +424,7 @@ class FisherAgent(Agent):
                     self.agent.pending_exit_registration = False
 
     async def setup(self):
+        from .owner_agent import OwnerAgent
         fisherman_name = str(self.jid).split("@")[0]
         logger.info(f"Agent {self.jid} starting")
         console.print(Panel(
@@ -439,7 +443,7 @@ class FisherAgent(Agent):
         
         # Entrance response handler
         if_can_enter_response_template = Template(
-            metadata={"protocol": "if_can_enter_response"}
+            metadata={"protocol": OwnerAgent.IF_CAN_ENTER_RESPONSE}
         )
         if_can_enter_response_behaviour = self.HandleIfCanEnterResponseBehaviour()
         self.add_behaviour(if_can_enter_response_behaviour, if_can_enter_response_template)
@@ -461,7 +465,7 @@ class FisherAgent(Agent):
 
         # Exit registration response handler
         exit_response_template = Template(
-            metadata={"protocol": "register-exit"}
+            metadata={"protocol": OwnerAgent.REGISTER_EXIT_RESPONSE}
         )
         exit_response_behaviour = self.HandleExitResponseBehaviour()
         self.add_behaviour(exit_response_behaviour, exit_response_template)

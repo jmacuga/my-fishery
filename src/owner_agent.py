@@ -3,7 +3,6 @@ from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 from .logger_config import get_logger
-from .fisher_agent import FisherAgent
 
 logger = get_logger("OwnerAgent")
 
@@ -151,7 +150,7 @@ class OwnerAgent(Agent):
 
                     # Acknowledge exit
                     reply = msg.make_reply()
-                    reply.metadata["protocol"] = protocol
+                    reply.metadata["protocol"] = OwnerAgent.REGISTER_EXIT_RESPONSE
                     reply.body = json.dumps(
                         {
                             "status": "acknowledged",
@@ -181,6 +180,7 @@ class OwnerAgent(Agent):
         self.setup_water_alarm()
 
     def setup_if_can_enter(self):
+        from .fisher_agent import FisherAgent
         fisher_template = Template(
             to=self.jid,
             metadata={"protocol": FisherAgent.IF_CAN_ENTER_REQUEST},
@@ -201,9 +201,10 @@ class OwnerAgent(Agent):
 
     def setup_exit_registration(self):
         """Setup handler for exit registration"""
+        from .fisher_agent import FisherAgent
         exit_template = Template(
             to=self.jid,
-            metadata={"protocol": "register-exit"},
+            metadata={"protocol": FisherAgent.REGISTER_EXIT_REQUEST},
         )
 
         exit_behaviour = self.HandleExitRegistrationBehaviour()
