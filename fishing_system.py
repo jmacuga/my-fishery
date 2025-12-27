@@ -26,11 +26,11 @@ async def main():
     fish_caretaker_password = ""
 
     # Create owner and caretaker agents (no fishermen here)
-    owner = OwnerAgent(owner_jid, owner_password, water_caretaker_jid)
+    owner = OwnerAgent(owner_jid, owner_password, water_caretaker_jid, fish_caretaker_jid)
     water_caretaker = WaterCaretakerAgent(
         water_caretaker_jid, water_caretaker_password, owner_jid, logs_out=True
     )
-    fish_caretaker = FishCaretakerAgent(fish_caretaker_jid, fish_caretaker_password)
+    fish_caretaker = FishCaretakerAgent(fish_caretaker_jid, fish_caretaker_password, owner_jid)
 
     # Start system agents
     agent_list = [owner, water_caretaker, fish_caretaker]

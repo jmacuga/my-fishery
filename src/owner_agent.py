@@ -13,10 +13,11 @@ class OwnerAgent(Agent):
     REGISTER_EXIT_RESPONSE = "register_exit_response"
 
 
-    def __init__(self, jid, password, water_caretaker_jid):
+    def __init__(self, jid, password, water_caretaker_jid, fish_caretaker_jid):
         super().__init__(jid, password)
 
         self.water_caretaker_jid = water_caretaker_jid
+        self.fish_caretaker_jid = fish_caretaker_jid
 
         # Track active fishermen by JID to prevent double-counting
         self.active_fishermen = set()  # Set of JIDs currently in the fishery
@@ -52,6 +53,14 @@ class OwnerAgent(Agent):
     def get_fisherman_count(self):
         """Get current number of active fishermen"""
         return len(self.active_fishermen)
+    
+    def recommend_stocking(self):
+        """Recommend stocking for end user"""
+        logger.info("Restocking needed")
+    
+    def register_stocking(self):
+        #@TODO Consider if this activity is needed, maybe add this to GUI (?)
+        pass
 
     class HandleIfCanEnterRequestBehaviour(CyclicBehaviour):
         async def run(self):
@@ -170,6 +179,14 @@ class OwnerAgent(Agent):
             msg = await self.receive()
             if msg:
                 logger.warning(f"Water alarm received: [{msg.sender}] {msg.body}")
+    
+    class NeedsRestockingAlarmHandleBehaviour(CyclicBehaviour):
+        """Handler for too little stock alarm (receive_needs_stocking_alarm)"""
+        async def run(self):
+            msg = await self.receive()
+            if msg:
+                logger.warning(f"Needs restocking alarm received: [{msg.sender}] {msg.body}")
+                self.agent.recommend_stocking()
 
     async def setup(self):
         logger.info(f"Agent {self.jid} starting")
@@ -178,6 +195,7 @@ class OwnerAgent(Agent):
         self.setup_take_fish_permission()
         self.setup_exit_registration()
         self.setup_water_alarm()
+        self.setup_needs_restocking_alarm()
 
     def setup_if_can_enter(self):
         from .fisher_agent import FisherAgent
@@ -220,3 +238,15 @@ class OwnerAgent(Agent):
         water_alarm_behaviour = self.WaterAlarmHandleBehaviour()
 
         self.add_behaviour(water_alarm_behaviour, water_alarm_template)
+    
+    def setup_needs_restocking_alarm(self):
+        """Setup handler for receiving needs restocking alarm from DEI"""
+        from .fish_caretaker_agent import FishCaretakerAgent
+        needs_restocking_alarm_template = Template(
+            to=self.jid,
+            sender=self.fish_caretaker_jid,
+            metadata={"protocol": FishCaretakerAgent.SEND_NEEDS_STOCKING_ALARM}
+        )
+        needs_restockig_alarm_behaviour = self.NeedsRestockingAlarmHandleBehaviour()
+
+        self.add_behaviour(needs_restockig_alarm_behaviour, needs_restocking_alarm_template)

@@ -7,32 +7,9 @@ from spade.message import Message
 
 from random import normalvariate
 from .logger_config import get_logger
+from .misc import get_random_data, calculate_z_score
 
 logger = get_logger("WaterCaretakerAgent")
-
-
-def get_ph_data():
-    return normalvariate(0, 5)  # mock normal distribution
-
-
-def calculate_z_score(ph_data, n=10) -> dict:
-    if len(ph_data) < 2:
-        return None
-
-    recent_data = ph_data[-n:]
-
-    mean = sum(recent_data) / len(recent_data)
-
-    variance = sum((x - mean) ** 2 for x in recent_data) / len(recent_data)
-    std_dev = math.sqrt(variance)
-
-    if std_dev == 0:
-        z_score = 0.0
-    else:
-        z_score = (recent_data[-1] - mean) / std_dev
-
-    return z_score
-
 
 class WaterCaretakerAgent(Agent):
     def __init__(self, jid, password, owner_jid, logs_out=True):
@@ -66,7 +43,7 @@ class WaterCaretakerAgent(Agent):
             self.aeration()
 
         async def collect_data(self):
-            ph_data = get_ph_data()
+            ph_data = get_random_data(10, 5)
             logger.debug(f"Collected pH data: {ph_data}")
 
             self.agent.ph_data.append(ph_data)
