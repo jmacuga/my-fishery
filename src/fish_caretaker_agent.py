@@ -8,6 +8,7 @@ logger = get_logger("FishCaretakerAgent")
 
 
 class FishCaretakerAgent(Agent):
+    REGISTER_FISH_DATA_RESPONSE = "response_fish_data_response"
 
     # ========== DEI ==========
 
@@ -45,7 +46,7 @@ class FishCaretakerAgent(Agent):
                     mass = fish_data.get("mass", 0)
                     time = fish_data.get("time", "")
 
-                    logger.info(f"[DEI] Received fish data registration from {msg.sender}: species={species}, size={size}, mass={mass}kg, action={action}, time={time}")
+                    logger.info(f"[DEI] Received fish data registration from {msg.sender}: species={species}, size={size}, mass={mass}kg, time={time}")
 
                     # Process fish data (update fish stock estimates, etc.)
                     # This is where you would update the fish stock database
@@ -53,7 +54,7 @@ class FishCaretakerAgent(Agent):
 
                     # Send confirmation
                     reply = msg.make_reply()
-                    reply.metadata["protocol"] = protocol
+                    reply.metadata["protocol"] = FishCaretakerAgent.REGISTER_FISH_DATA_RESPONSE
                     reply.body = json.dumps(
                         {
                             "status": "registered",
@@ -117,12 +118,13 @@ class FishCaretakerAgent(Agent):
         await self.Feeder_setup()
 
     async def DEI_setup(self):
+        from .fisher_agent import FisherAgent
         # Monitor fish state
         self.add_behaviour(self.MonitorFishState())
         self.add_behaviour(self.ManageRestocking())
 
         # Register fish data handler
-        fish_data_template = Template(metadata={"protocol": "register-fish-data"})
+        fish_data_template = Template(metadata={"protocol": FisherAgent.REGISTER_FISH_DATA_REQUEST})
         register_fish_data_behaviour = self.RegisterFishDataBehaviour()
         self.add_behaviour(register_fish_data_behaviour, fish_data_template)
 

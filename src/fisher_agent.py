@@ -22,6 +22,7 @@ class FisherAgent(Agent):
     IF_CAN_ENTER_REQUEST = "if_can_enter_request"
     REGISTER_EXIT_REQUEST = "register_exit_request"
     IF_CAN_TAKE_FISH_REQUEST = "if_can_take_fish_request"
+    REGISTER_FISH_DATA_REQUEST = "register_fish_data_request"
 
     def __init__(self, jid, password, owner_jid, fish_caretaker_jid=None):
         super().__init__(jid, password)
@@ -354,7 +355,7 @@ class FisherAgent(Agent):
                         console.print(f"[yellow]\nUnknown response: {performative}[/yellow]")
                         logger.warning(f"Unknown response performative: {performative}")
         
-        async def register_take_fish(self, fish_data: dict):
+        def register_take_fish(self, fish_data: dict):
             self.agent.fishes_caught.append(
                 {
                     "species": fish_data["species"],
@@ -381,7 +382,7 @@ class FisherAgent(Agent):
                 body=json.dumps(fish_data),
                 metadata={
                     "performative": "request",
-                    "protocol": "register-fish-data",
+                    "protocol": FisherAgent.REGISTER_FISH_DATA_REQUEST,
                 },
             )
             logger.info(f"Registering fish data: {species}")
@@ -423,6 +424,7 @@ class FisherAgent(Agent):
 
     async def setup(self):
         from .owner_agent import OwnerAgent
+        from .fish_caretaker_agent import FishCaretakerAgent
         fisherman_name = str(self.jid).split("@")[0]
         logger.info(f"Agent {self.jid} starting")
         console.print(Panel(
@@ -455,7 +457,7 @@ class FisherAgent(Agent):
         
         # Fish data registration response handler
         fish_data_response_template = Template(
-            metadata={"protocol": "register-fish-data"}
+            metadata={"protocol": FishCaretakerAgent.REGISTER_FISH_DATA_RESPONSE}
         )
         fish_data_response_behaviour = self.HandleFishDataResponseBehaviour()
         self.add_behaviour(fish_data_response_behaviour, fish_data_response_template)
