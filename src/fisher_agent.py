@@ -10,6 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from .logger_config import get_logger
+from .owner_agent import OwnerAgent
 
 # Rich console for UI (user-facing terminal)
 console = Console()
@@ -19,6 +20,8 @@ logger = get_logger("FisherAgent")
 
 
 class FisherAgent(Agent):
+    IF_CAN_ENTER_REQUEST = "if_can_enter_request"
+
     def __init__(self, jid, password, owner_jid, fish_caretaker_jid=None):
         super().__init__(jid, password)
         self.owner_jid = owner_jid
@@ -104,7 +107,7 @@ class FisherAgent(Agent):
             msg = Message(
                 to=self.agent.owner_jid,
                 body="May I enter the fishery?",
-                metadata={"performative": "request", "protocol": "if-can-enter"},
+                metadata={"performative": "request", "protocol": FisherAgent.IF_CAN_ENTER_REQUEST},
             )
             logger.debug(f"Sending entrance request to {self.agent.owner_jid}")
             self.agent.pending_entrance_request = True
@@ -270,7 +273,7 @@ class FisherAgent(Agent):
             msg = await self.receive(timeout=30)
             if msg:
                 protocol = msg.metadata.get("protocol", "")
-                if protocol != "if-can-enter":
+                if protocol != OwnerAgent.IF_CAN_ENTER_RESPONSE:
                     return
                     
                 performative = msg.metadata.get("performative", "")
@@ -433,7 +436,7 @@ class FisherAgent(Agent):
         
         # Entrance response handler
         if_can_enter_response_template = Template(
-            metadata={"protocol": "if-can-enter"}
+            metadata={"protocol": "if_can_enter_response"}
         )
         if_can_enter_response_behaviour = self.HandleIfCanEnterResponseBehaviour()
         self.add_behaviour(if_can_enter_response_behaviour, if_can_enter_response_template)

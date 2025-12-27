@@ -3,11 +3,17 @@ from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 from .logger_config import get_logger
+from .fisher_agent import FisherAgent
 
 logger = get_logger("OwnerAgent")
 
 
 class OwnerAgent(Agent):
+    IF_CAN_ENTER_RESPONSE = "if_can_enter_response"
+    IF_CAN_TAKE_FISH_RESPONSE = "if_can_take_fish_response"
+    REGISTER_EXIT_RESPONSE = "register_exit_response"
+
+
     def __init__(self, jid, password, water_caretaker_jid):
         super().__init__(jid, password)
 
@@ -61,7 +67,7 @@ class OwnerAgent(Agent):
                 allow, reason = self.agent.check_if_entrance_possible(fisherman_jid)
 
                 reply = msg.make_reply()
-                reply.metadata["protocol"] = protocol
+                reply.metadata["protocol"] = OwnerAgent.IF_CAN_ENTER_RESPONSE
 
                 if allow:
                     # Add fisherman to active set
@@ -177,7 +183,7 @@ class OwnerAgent(Agent):
     def setup_if_can_enter(self):
         fisher_template = Template(
             to=self.jid,
-            metadata={"protocol": "if-can-enter"},
+            metadata={"protocol": FisherAgent.IF_CAN_ENTER_REQUEST},
         )
 
         handle_request_behaviour = self.HandleIfCanEnterRequestBehaviour()
