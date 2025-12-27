@@ -16,21 +16,27 @@ sudo mkdir -p /run/prosody
 sudo chown prosody:prosody /run/prosody
 
 sudo prosodyctl adduser owner@localhost
+
 sudo prosodyctl adduser fisher1@localhost
+
 sudo prosodyctl adduser fisher2@localhost
+
 sudo prosodyctl adduser fisher3@localhost
 
 # Add more fishermen as needed (up to the limit set in OwnerAgent)
 
 sudo prosodyctl adduser water_caretaker@localhost
+
 sudo prosodyctl adduser fish_caretaker@localhost
 
 ### Run
 
 sudo mkdir -p /run/prosody
+
 sudo chown prosody:prosody /run/prosody
 
 sudo prosodyctl start
+
 sudo prosodyctl status
 
 ### Running the System
