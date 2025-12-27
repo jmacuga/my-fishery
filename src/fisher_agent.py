@@ -333,14 +333,7 @@ class FisherAgent(Agent):
                                     
                                 )
                             
-                                self.agent.fishes_caught.append(
-                                    {
-                                        "species": fish_data["species"],
-                                        "size": fish_data["size"],
-                                        "mass": fish_data["mass"],
-                                        "time": datetime.now().isoformat(),
-                                    }
-                                )
+                                self.register_take_fish(fish_data)
                                 console.print("[bold green]✓ \nSuccessfully registered and took fish![/bold green]")
                             else:
                                 raise ValueError("Permission not granted")
@@ -352,14 +345,7 @@ class FisherAgent(Agent):
                                 fish_data["size"], 
                                 fish_data["mass"], 
                             )
-                            self.agent.fishes_caught.append(
-                                {
-                                    "species": fish_data["species"],
-                                    "size": fish_data["size"],
-                                    "mass": fish_data["mass"],
-                                    "time": datetime.now().isoformat(),
-                                }
-                            )
+                            self.register_take_fish(fish_data)
                     elif performative == "disconfirm":
                         console.print("[bold red]✗ \nPermission denied to take fish.[/bold red]")
                         logger.info(f"Permission denied, releasing fish: {fish_data['species']}")
@@ -367,6 +353,16 @@ class FisherAgent(Agent):
                     else:
                         console.print(f"[yellow]\nUnknown response: {performative}[/yellow]")
                         logger.warning(f"Unknown response performative: {performative}")
+        
+        async def register_take_fish(self, fish_data: dict):
+            self.agent.fishes_caught.append(
+                {
+                    "species": fish_data["species"],
+                    "size": fish_data["size"],
+                    "mass": fish_data["mass"],
+                    "time": datetime.now().isoformat(),
+                }
+            )
         
         async def register_fish_data(self, species: str, size: str, mass: float):
             """Helper method to register fish data"""
