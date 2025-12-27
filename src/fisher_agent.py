@@ -21,6 +21,7 @@ logger = get_logger("FisherAgent")
 class FisherAgent(Agent):
     IF_CAN_ENTER_REQUEST = "if_can_enter_request"
     REGISTER_EXIT_REQUEST = "register_exit_request"
+    IF_CAN_TAKE_FISH_REQUEST = "if_can_take_fish_request"
 
     def __init__(self, jid, password, owner_jid, fish_caretaker_jid=None):
         super().__init__(jid, password)
@@ -200,7 +201,7 @@ class FisherAgent(Agent):
                 ),
                 metadata={
                     "performative": "request",
-                    "protocol": "if-can-take-fish",
+                    "protocol": FisherAgent.IF_CAN_TAKE_FISH_REQUEST,
                 },
             )
             logger.info(f"Requesting permission to take fish: {species} ({size}, {mass}kg)")
@@ -275,7 +276,7 @@ class FisherAgent(Agent):
             msg = await self.receive(timeout=30)
             if msg:
                 protocol = msg.metadata.get("protocol", "")
-                if protocol != OwnerAgent.IF_CAN_ENTER_RESPONSE:
+                if protocol != OwnerAgent.IF_CAN_ENTER_RESPONSE: #@TODO Is this kind of checking needed?
                     return
                     
                 performative = msg.metadata.get("performative", "")
@@ -303,10 +304,11 @@ class FisherAgent(Agent):
         """Handle responses to take fish permission requests asynchronously"""
         
         async def run(self):
+            from .owner_agent import OwnerAgent
             msg = await self.receive(timeout=30)
             if msg:
                 protocol = msg.metadata.get("protocol", "")
-                if protocol != "if-can-take-fish":
+                if protocol != OwnerAgent.IF_CAN_TAKE_FISH_RESPONSE:
                     return
                     
                 performative = msg.metadata.get("performative", "")
@@ -450,7 +452,7 @@ class FisherAgent(Agent):
         
         # Take fish response handler
         take_fish_response_template = Template(
-            metadata={"protocol": "if-can-take-fish"}
+            metadata={"protocol": OwnerAgent.IF_CAN_TAKE_FISH_RESPONSE}
         )
         take_fish_response_behaviour = self.HandleTakeFishResponseBehaviour()
         self.add_behaviour(take_fish_response_behaviour, take_fish_response_template)

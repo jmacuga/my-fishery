@@ -99,7 +99,7 @@ class OwnerAgent(Agent):
                     can_take = self.agent.check_if_can_take_fish()
 
                     reply = msg.make_reply()
-                    reply.metadata["protocol"] = protocol
+                    reply.metadata["protocol"] = OwnerAgent.IF_CAN_TAKE_FISH_RESPONSE
 
                     if can_take:
                         reply.body = json.dumps(
@@ -191,9 +191,10 @@ class OwnerAgent(Agent):
 
     def setup_take_fish_permission(self):
         """Setup handler for take fish permission requests"""
+        from .fisher_agent import FisherAgent
         take_fish_template = Template(
             to=self.jid,
-            metadata={"protocol": "if-can-take-fish"},
+            metadata={"protocol": FisherAgent.IF_CAN_TAKE_FISH_REQUEST},
         )
 
         take_fish_behaviour = self.HandleIfCanTakeFishBehaviour()
