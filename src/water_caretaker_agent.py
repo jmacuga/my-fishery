@@ -12,6 +12,8 @@ from .misc import get_random_data, calculate_z_score
 logger = get_logger("WaterCaretakerAgent")
 
 class WaterCaretakerAgent(Agent):
+    SEND_WATER_QUALITY_ALARM = "send_water_quality_alarm"
+
     def __init__(self, jid, password, owner_jid, logs_out=True):
         super().__init__(jid, password)
 
@@ -36,7 +38,7 @@ class WaterCaretakerAgent(Agent):
             msg = Message(
                 to=self.agent.owner_jid,
                 body=f"Water quality alarm, z_score value: {z_score}",
-                metadata={"performative": "alarm", "protocol": "water-quality-alarm"},
+                metadata={"performative": "alarm", "protocol": WaterCaretakerAgent.SEND_WATER_QUALITY_ALARM},
             )
             await self.send(msg)
 
