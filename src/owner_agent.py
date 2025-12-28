@@ -11,6 +11,7 @@ class OwnerAgent(Agent):
     IF_CAN_ENTER_RESPONSE = "if_can_enter_response"
     IF_CAN_TAKE_FISH_RESPONSE = "if_can_take_fish_response"
     REGISTER_EXIT_RESPONSE = "register_exit_response"
+    RECEIVE_WATER_QUALITY_ALARM = "receive_water_quality_alarm"
 
 
     def __init__(self, jid, password, water_caretaker_jid, fish_caretaker_jid):
@@ -174,7 +175,7 @@ class OwnerAgent(Agent):
                 except json.JSONDecodeError:
                     logger.error("Error parsing exit data from message")
 
-    class WaterAlarmHandleBehaviour(CyclicBehaviour):
+    class ReceiveWaterQualityAlarmBehaviour(CyclicBehaviour):
         async def run(self):
             msg = await self.receive()
             if msg:
@@ -230,12 +231,13 @@ class OwnerAgent(Agent):
         self.add_behaviour(exit_behaviour, exit_template)
 
     def setup_water_alarm(self):
+        from .water_caretaker_agent import WaterCaretakerAgent
         water_alarm_template = Template(
             to=self.jid,
             sender=self.water_caretaker_jid,
-            metadata={"protocol": "water-quality-alarm"},
+            metadata={"protocol": WaterCaretakerAgent.SEND_WATER_QUALITY_ALARM},
         )
-        water_alarm_behaviour = self.WaterAlarmHandleBehaviour()
+        water_alarm_behaviour = self.ReceiveWaterQualityAlarmBehaviour()
 
         self.add_behaviour(water_alarm_behaviour, water_alarm_template)
     
