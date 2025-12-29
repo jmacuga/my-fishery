@@ -72,6 +72,8 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
     BORDER_STYLE = "magenta"
 
     async def on_start(self):
+        # czekanie na setupowanie
+        await asyncio.sleep(2)
         self.render_menu()
 
     def menu_items(self):
@@ -348,8 +350,6 @@ class OwnerAgent(Agent):
         self.setup_take_fish_permission()
         self.setup_exit_registration()
         self.setup_water_alarm()
-
-        self.add_behaviour(OwnerUserGUI())
 
         self.add_behaviour(OwnerUserGUI())
 
