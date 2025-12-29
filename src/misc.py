@@ -1,11 +1,13 @@
 from random import normalvariate
 import math
+from typing import Optional
+
 
 def get_random_data(mu: int, sigma: int):
     return normalvariate(mu, sigma)  # mock normal distribution
 
 
-def calculate_z_score(data, n=10) -> dict:
+def calculate_z_score(data: list[float], n=10) -> Optional[float]:
     if len(data) < 2:
         return None
 

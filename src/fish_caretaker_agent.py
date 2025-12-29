@@ -1,4 +1,5 @@
 import json, asyncio
+from typing import Optional
 from spade.behaviour import CyclicBehaviour, PeriodicBehaviour
 from spade.agent import Agent
 from spade.template import Template
@@ -6,15 +7,12 @@ from spade.message import Message
 from .logger_config import get_logger
 
 from .misc import get_random_data, calculate_z_score
+from .protocols import Protocols
 
 logger = get_logger("FishCaretakerAgent")
 
 
 class FishCaretakerAgent(Agent):
-    REGISTER_FISH_DATA_RESPONSE = "response_fish_data_response"
-    SEND_NEEDS_STOCKING_ALARM = "send_needs_stocking_alarm"
-    # FISH_SIZE_RESPONSE = "fish_size_response"
-
     def __init__(self, jid, password, owner_jid):
         super().__init__(jid, password)
         self.camera_data = []
@@ -24,7 +22,7 @@ class FishCaretakerAgent(Agent):
         self.owner_jid = owner_jid
 
         self.feeding_parameters = {"portion": 0.0}
-        self.set_feeding_parameters_event = asyncio.Event()
+        self.feeding_update_event = asyncio.Event()
 
     # ========== DEI ==========
 
@@ -47,24 +45,39 @@ class FishCaretakerAgent(Agent):
                 await self.send_needs_stocking_alarm(z_score)
             await asyncio.sleep(1)
 
-        def if_needs_stocking(self):
-            camera_z_score = calculate_z_score(self.agent.camera_data)
-            sonar_z_score = calculate_z_score(self.agent.sonar_data)
+        def if_needs_stocking(self) -> tuple[bool, Optional[float]]:
+            camera_z_score: Optional[float] = calculate_z_score(self.agent.camera_data)
+            sonar_z_score: Optional[float] = calculate_z_score(self.agent.sonar_data)
             if camera_z_score is not None and sonar_z_score is not None:
                 index = max(abs(camera_z_score), abs(sonar_z_score))
-                return (index < self.agent.z_score_needs_restocking_alarm_point), index
+                return (
+                    (index < self.agent.z_score_needs_restocking_alarm_point),
+                    index,
+                )
+
             return False, None
 
-        async def send_needs_stocking_alarm(self, z_score):
+        async def send_needs_stocking_alarm(self, z_score: Optional[float]):
             logger.warning(f"ALERT: Not enough fish! z_score: {z_score}")
-
-            msg = Message(
-                to=self.agent.owner_jid,
-                body=f"Not enough fish, z_score value: {z_score}",
-                metadata={"performative": "alarm", "protocol": FishCaretakerAgent.SEND_NEEDS_STOCKING_ALARM}
-            )
-            await self.send(msg)
-
+            payload = {
+                "z_score": f"{z_score if z_score else "N/A"}",
+                "message": "Not enough fish - fishery needs stocking",
+            }
+            try:
+                msg = Message(
+                    to=self.agent.owner_jid,
+                    body=json.dumps(payload),
+                    metadata={
+                        "performative": "request",
+                        "protocol": Protocols.SEND_NEEDS_STOCKING_ALARM.value,
+                        "language": "JSON",
+                    },
+                )
+                await self.send(msg)
+            except json.JSONDecodeError as e:
+                logger.error(
+                    f"Exception while sending nedds stocking alarm. Reason: {e}"
+                )
 
     class RegisterFishDataBehaviour(CyclicBehaviour):
         """Handle fish data registration from fishermen (register_fish_data_request)"""
@@ -72,7 +85,6 @@ class FishCaretakerAgent(Agent):
         async def run(self):
             msg = await self.receive(timeout=30)
             if msg:
-                protocol = msg.metadata.get("protocol", "")
                 try:
                     fish_data = json.loads(msg.body)
                     species = fish_data.get("species", "Unknown")
@@ -80,7 +92,9 @@ class FishCaretakerAgent(Agent):
                     mass = fish_data.get("mass", 0)
                     time = fish_data.get("time", "")
 
-                    logger.info(f"[DEI] Received fish data registration from {msg.sender}: species={species}, size={size}, mass={mass}kg, time={time}")
+                    logger.info(
+                        f"[DEI] Received fish data registration from {msg.sender}: species={species}, size={size}, mass={mass}kg, time={time}"
+                    )
 
                     # Process fish data (update fish stock estimates, etc.)
                     # This is where you would update the fish stock database
@@ -95,7 +109,9 @@ class FishCaretakerAgent(Agent):
 
                     # Send confirmation
                     reply = msg.make_reply()
-                    reply.metadata["protocol"] = FishCaretakerAgent.REGISTER_FISH_DATA_RESPONSE
+                    reply.metadata["protocol"] = (
+                        Protocols.REGISTER_FISH_DATA_RESPONSE.value
+                    )
                     reply.body = json.dumps(
                         {
                             "status": "registered",
@@ -103,13 +119,13 @@ class FishCaretakerAgent(Agent):
                         }
                     )
                     reply.metadata["performative"] = "agree"
+                    reply.metadata["language"] = "JSON"
 
                     logger.debug("[DEI] Fish data registration confirmed")
 
                     await self.send(reply)
                 except json.JSONDecodeError:
                     logger.error("[DEI] Error parsing fish data from message")
-
 
     ##TODO - add to some behaviour vvvv
     async def set_diversity_target_response(self):
@@ -119,7 +135,7 @@ class FishCaretakerAgent(Agent):
 
     class FishHealthManagerBehaviour(CyclicBehaviour):
         async def run(self):
-            self.revaluate_feeding()
+            # await self.revaluate_feeding()
             await asyncio.sleep(5)
 
         async def revaluate_feeding(self):
@@ -134,8 +150,9 @@ class FishCaretakerAgent(Agent):
             self.agent.feeding_update_event.set()
 
         def check_fish_state(self):
-            return self.agent.camera_data.mean() > 10 and self.agent.sonar_data.mean() > 10
-
+            return (
+                self.agent.camera_data.mean() > 10 and self.agent.sonar_data.mean() > 10
+            )
 
     # ========== Feeder ==========
 
@@ -167,7 +184,7 @@ class FishCaretakerAgent(Agent):
         await self.Feeder_setup()
 
     async def DEI_setup(self):
-        from .fisher_agent import FisherAgent
+
         # Monitor fish state
         self.add_behaviour(self.MonitorFishState())
 
@@ -175,7 +192,13 @@ class FishCaretakerAgent(Agent):
         self.add_behaviour(self.ManageRestocking())
 
         # Register fish data handler
-        fish_data_template = Template(metadata={"protocol": FisherAgent.REGISTER_FISH_DATA_REQUEST})
+        fish_data_template = Template(
+            metadata={
+                "protocol": Protocols.REGISTER_FISH_DATA_REQUEST.value,
+                "performative": "request",
+                "language": "JSON",
+            }
+        )
         register_fish_data_behaviour = self.RegisterFishDataBehaviour()
         self.add_behaviour(register_fish_data_behaviour, fish_data_template)
 
