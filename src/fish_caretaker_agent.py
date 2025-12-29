@@ -18,6 +18,7 @@ class FishCaretakerAgent(Agent):
         super().__init__(jid, password)
         self.camera_data = []
         self.sonar_data = []
+        self.fishes_taken = {}
         self.z_score_needs_restocking_alarm_point = 0.5
         self.owner_jid = owner_jid
 
@@ -80,6 +81,13 @@ class FishCaretakerAgent(Agent):
                     # Process fish data (update fish stock estimates, etc.)
                     # This is where you would update the fish stock database
                     # For now, just log it
+
+                    # Register data in dict
+                    if msg.sender not in self.agent.fishes_taken.keys():
+                        self.agent.fishes_taken[msg.sender] = []
+                    self.agent.fishes_taken[msg.sender].append(fish_data)
+
+                    logger.info(f"Currently taken fishes: {self.agent.fishes_taken}")
 
                     # Send confirmation
                     reply = msg.make_reply()
