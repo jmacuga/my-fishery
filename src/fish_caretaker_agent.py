@@ -14,12 +14,6 @@ logger = get_logger("FishCaretakerAgent")
 
 
 class FishCaretakerAgent(Agent):
-    REGISTER_FISH_DATA_RESPONSE = "response_fish_data_response"
-    SEND_NEEDS_STOCKING_ALARM = "send_needs_stocking_alarm"
-    # FISH_SIZE_RESPONSE = "fish_size_response"
-
-    # SET_FEEDING_PARAMETERS_REQUEST = "set_feeding_parameters_request"
-    # SET_FEEDING_PARAMETERS_RESPONSE = "set_feeding_parameters_response"
 
     def __init__(self, jid, password, owner_jid):
         super().__init__(jid, password)
