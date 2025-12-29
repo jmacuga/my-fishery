@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4 as uuid
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.template import Template
@@ -63,6 +64,8 @@ class OwnerAgent(Agent):
         async def run(self):
             msg = await self.receive(timeout=30)
             if msg:
+                conversation_id = msg.metadata.get("conversation-id")
+                in_reply_to = msg.metadata.get("reply-with")
                 fisherman_jid = str(msg.sender)
 
                 logger.info(
@@ -74,6 +77,9 @@ class OwnerAgent(Agent):
                 reply = msg.make_reply()
                 reply.metadata["protocol"] = Protocols.IF_CAN_ENTER_RESPONSE.value
                 reply.metadata["language"] = "JSON"
+                reply.metadata["in-reply-to"] = in_reply_to
+                reply.metadata["conversation-id"] = conversation_id
+                reply.metadata["reply-with"] = str(uuid())
 
                 try:
                     if allow:
@@ -104,6 +110,8 @@ class OwnerAgent(Agent):
             msg = await self.receive(timeout=30)
             if msg:
                 try:
+                    in_reply_to = msg.metadata.get("reply-with")
+                    conversation_id = msg.metadata.get("conversation-id")
                     fish_data = json.loads(msg.body)
                     species = fish_data.get("species", "Unknown")
                     size = fish_data.get("size", "Unknown")
@@ -120,6 +128,10 @@ class OwnerAgent(Agent):
                         Protocols.IF_CAN_TAKE_FISH_RESPONSE.value
                     )
                     reply.metadata["language"] = "JSON"
+                    reply.metadata["reply-with"] == str(uuid())
+                    reply.metadata["conversation-id"] = conversation_id
+                    reply.metadata["in-reply-to"] = in_reply_to
+
                     if can_take:
                         reply.body = json.dumps(
                             {
@@ -154,8 +166,9 @@ class OwnerAgent(Agent):
         async def run(self):
             msg = await self.receive(timeout=30)
             if msg:
-                protocol = msg.metadata.get("protocol", "")
                 try:
+                    in_reply_to = msg.metadata.get("reply-with")
+                    conversation_id = msg.metadata.get("conversation-id")
                     exit_data = json.loads(msg.body)
                     fisherman = exit_data.get("fisherman", "Unknown")
                     fishes_taken = exit_data.get("fishes_taken", 0)
@@ -179,6 +192,9 @@ class OwnerAgent(Agent):
                     reply = msg.make_reply()
                     reply.metadata["protocol"] = Protocols.REGISTER_EXIT_RESPONSE.value
                     reply.metadata["language"] = "JSON"
+                    reply.metadata["reply-with"] == str(uuid())
+                    reply.metadata["conversation-id"] = conversation_id
+                    reply.metadata["in-reply-to"] = in_reply_to
                     reply.body = json.dumps(
                         {
                             "status": "acknowledged",

@@ -1,5 +1,6 @@
 import json
 import asyncio
+from uuid import uuid4 as uuid
 from datetime import datetime
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
@@ -115,6 +116,8 @@ class FisherAgent(Agent):
                         "performative": "query_if",
                         "protocol": Protocols.IF_CAN_ENTER_REQUEST.value,
                         "language": "JSON",
+                        "reply-with": str(uuid()),
+                        "conversation-id": str(uuid()),
                     },
                 )
                 logger.debug(f"Sending entrance request to {self.agent.owner_jid}")
@@ -226,6 +229,8 @@ class FisherAgent(Agent):
                         "performative": "query_if",
                         "protocol": Protocols.IF_CAN_TAKE_FISH_REQUEST.value,
                         "language": "JSON",
+                        "reply-with": str(uuid()),
+                        "conversation-id": str(uuid()),
                     },
                 )
                 logger.info(
@@ -268,6 +273,8 @@ class FisherAgent(Agent):
                         "performative": "request",
                         "protocol": Protocols.REGISTER_FISH_DATA_REQUEST.value,
                         "language": "JSON",
+                        "conversation-id": str(uuid()),
+                        "reply-with": str(uuid()),
                     },
                 )
                 logger.info(f"Registering fish data: {species}")
@@ -294,6 +301,8 @@ class FisherAgent(Agent):
                         "performative": "inform",
                         "protocol": Protocols.REGISTER_EXIT_REQUEST.value,
                         "language": "JSON",
+                        "conversation-id": str(uuid()),
+                        "reply-with": str(uuid()),
                     },
                 )
                 self.agent.pending_exit_registration = True
@@ -434,6 +443,8 @@ class FisherAgent(Agent):
                         "performative": "request",
                         "protocol": Protocols.REGISTER_FISH_DATA_REQUEST.value,
                         "language": "JSON",
+                        "conversation-id": str(uuid()),
+                        "reply-with": str(uuid()),
                     },
                 )
                 logger.info(f"Registering fish data: {species}")

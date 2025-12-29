@@ -1,4 +1,5 @@
 import json, asyncio
+from uuid import uuid4 as uuid
 from typing import Optional
 from spade.behaviour import CyclicBehaviour, PeriodicBehaviour
 from spade.agent import Agent
@@ -71,6 +72,8 @@ class FishCaretakerAgent(Agent):
                         "performative": "request",
                         "protocol": Protocols.SEND_NEEDS_STOCKING_ALARM.value,
                         "language": "JSON",
+                        "reply-with": str(uuid()),
+                        "conversation-id": str(uuid()),
                     },
                 )
                 await self.send(msg)
@@ -86,6 +89,8 @@ class FishCaretakerAgent(Agent):
             msg = await self.receive(timeout=30)
             if msg:
                 try:
+                    conversation_id = msg.metadata.get("conversation-id")
+                    in_reply_to = msg.metadata.get("reply-with")
                     fish_data = json.loads(msg.body)
                     species = fish_data.get("species", "Unknown")
                     size = fish_data.get("size", "Unknown")
@@ -120,6 +125,9 @@ class FishCaretakerAgent(Agent):
                     )
                     reply.metadata["performative"] = "agree"
                     reply.metadata["language"] = "JSON"
+                    reply.metadata["reply-with"] = str(uuid())
+                    reply.metadata["in-reply-to"] = in_reply_to
+                    reply.metadata["conversation-id"] = conversation_id
 
                     logger.debug("[DEI] Fish data registration confirmed")
 
