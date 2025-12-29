@@ -1,4 +1,5 @@
 import json, asyncio
+from typing import Optional
 from spade.behaviour import CyclicBehaviour, PeriodicBehaviour
 from spade.agent import Agent
 from spade.template import Template
@@ -21,7 +22,7 @@ class FishCaretakerAgent(Agent):
         self.owner_jid = owner_jid
 
         self.feeding_parameters = {"portion": 0.0}
-        self.set_feeding_parameters_event = asyncio.Event()
+        self.feeding_update_event = asyncio.Event()
 
     # ========== DEI ==========
 
@@ -44,18 +45,22 @@ class FishCaretakerAgent(Agent):
                 await self.send_needs_stocking_alarm(z_score)
             await asyncio.sleep(1)
 
-        def if_needs_stocking(self):
-            camera_z_score = calculate_z_score(self.agent.camera_data)
-            sonar_z_score = calculate_z_score(self.agent.sonar_data)
+        def if_needs_stocking(self) -> tuple[bool, Optional[float]]:
+            camera_z_score: Optional[float] = calculate_z_score(self.agent.camera_data)
+            sonar_z_score: Optional[float] = calculate_z_score(self.agent.sonar_data)
             if camera_z_score is not None and sonar_z_score is not None:
                 index = max(abs(camera_z_score), abs(sonar_z_score))
-                return (index < self.agent.z_score_needs_restocking_alarm_point), index
+                return (
+                    (index < self.agent.z_score_needs_restocking_alarm_point),
+                    index,
+                )
+
             return False, None
 
-        async def send_needs_stocking_alarm(self, z_score):
+        async def send_needs_stocking_alarm(self, z_score: Optional[float]):
             logger.warning(f"ALERT: Not enough fish! z_score: {z_score}")
             payload = {
-                "z_score": {z_score},
+                "z_score": f"{z_score if z_score else "N/A"}",
                 "message": "Not enough fish - fishery needs stocking",
             }
             try:
@@ -130,7 +135,7 @@ class FishCaretakerAgent(Agent):
 
     class FishHealthManagerBehaviour(CyclicBehaviour):
         async def run(self):
-            self.revaluate_feeding()
+            # await self.revaluate_feeding()
             await asyncio.sleep(5)
 
         async def revaluate_feeding(self):
