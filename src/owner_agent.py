@@ -11,6 +11,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+import asyncio
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
 logger = get_logger("OwnerAgent")
 
 console = Console()
@@ -343,6 +348,8 @@ class OwnerAgent(Agent):
         self.setup_take_fish_permission()
         self.setup_exit_registration()
         self.setup_water_alarm()
+
+        self.add_behaviour(OwnerUserGUI())
 
         self.add_behaviour(OwnerUserGUI())
 

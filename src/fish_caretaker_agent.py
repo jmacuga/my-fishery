@@ -18,8 +18,8 @@ class FishCaretakerAgent(Agent):
     SEND_NEEDS_STOCKING_ALARM = "send_needs_stocking_alarm"
     # FISH_SIZE_RESPONSE = "fish_size_response"
 
-    SET_FEEDING_PARAMETERS_REQUEST = "set_feeding_parameters_request"
-    SET_FEEDING_PARAMETERS_RESPONSE = "set_feeding_parameters_response"
+    # SET_FEEDING_PARAMETERS_REQUEST = "set_feeding_parameters_request"
+    # SET_FEEDING_PARAMETERS_RESPONSE = "set_feeding_parameters_response"
 
     def __init__(self, jid, password, owner_jid):
         super().__init__(jid, password)
@@ -29,7 +29,7 @@ class FishCaretakerAgent(Agent):
         self.z_score_needs_restocking_alarm_point = 0.5
         self.owner_jid = owner_jid
 
-        self.feeding_parameters = {"portion": 0.0, "interval_s": 0}
+        self.feeding_parameters = {"portion": 1, "interval_s": 2}
 
         self.feeding_update_event = asyncio.Event()
 
@@ -37,7 +37,6 @@ class FishCaretakerAgent(Agent):
         self.required_food_supplies_kg = 2.0
         self.order_food_need = False      
         self.order_amount_kg = 25.0
-        # self.low_stock_threshold_multiplier = 1.0
 
     # ========== DEI ==========
 
@@ -155,37 +154,37 @@ class FishCaretakerAgent(Agent):
 
     # ========== FishHealthManager ==========
 
-    class FishHealthManagerBehaviour(CyclicBehaviour):
-        async def run(self):
-            # await self.revaluate_feeding()
-            await asyncio.sleep(5)
+    # class FishHealthManagerBehaviour(CyclicBehaviour):
+    #     async def run(self):
+    #         # await self.revaluate_feeding()
+    #         await asyncio.sleep(5)
 
-        async def revaluate_feeding(self):
-            """Calculate current feeding parameters based on fish data"""
-            if self.check_fish_state():
-                await self.set_feeding_parameters_request(0.0)
+    #     # async def revaluate_feeding(self):
+    #     #     """Calculate current feeding parameters based on fish data"""
+    #     #     if self.check_fish_state():
+    #     #         await self.set_feeding_parameters_request({"portion": 0.0, "interval_s": 0})
 
-        # async def set_feeding_parameters_request(self, feeding_parameters):
-        #     """Request for Feeder to change feeding parameters"""
-        #     logger.info("[FishHealthManager] New feeding parameters acknowledged")
-        #     self.agent.feeding_parameters = feeding_parameters
-        #     self.agent.feeding_update_event.set()
+    #     # async def set_feeding_parameters_request(self, feeding_parameters):
+    #     #     """Request for Feeder to change feeding parameters"""
+    #     #     logger.info("[FishHealthManager] New feeding parameters acknowledged")
+    #     #     self.agent.feeding_parameters = feeding_parameters
+    #     #     self.agent.feeding_update_event.set()
 
-        async def set_feeding_parameters_request(self, feeding_parameters):
-            """Request for Feeder to change feeding parameters (protocol message)."""
-            msg = Message(
-                to=str(self.agent.jid),
-                body=json.dumps(feeding_parameters),
-                metadata={
-                    "performative": "request",
-                    "protocol": FishCaretakerAgent.SET_FEEDING_PARAMETERS_REQUEST,
-                },
-            )
-            logger.info(f"[FishHealthManager] Sending set_feeding_parameters_request: {feeding_parameters}")
-            await self.send(msg)
+    #     async def set_feeding_parameters_request(self, feeding_parameters):
+    #         """Request for Feeder to change feeding parameters (protocol message)."""
+    #         msg = Message(
+    #             to=str(self.agent.jid),
+    #             body=json.dumps(feeding_parameters),
+    #             metadata={
+    #                 "performative": "request",
+    #                 "protocol": FishCaretakerAgent.SET_FEEDING_PARAMETERS_REQUEST,
+    #             },
+    #         )
+    #         logger.info(f"[FishHealthManager] Sending set_feeding_parameters_request: {feeding_parameters}")
+    #         await self.send(msg)
 
-        def check_fish_state(self):
-            return self.agent.camera_data.mean() > 10 and self.agent.sonar_data.mean() > 10
+    #     # def check_fish_state(self):
+    #     #     return sum(self.agent.camera_data)/len(self.agent.camera_data) > 10 and sum(self.agent.sonar_data)/len(self.agent.sonar_data) > 10
 
 
     # ========== Feeder ==========
@@ -210,47 +209,47 @@ class FishCaretakerAgent(Agent):
 
     # ========== Feeder ==========
 
-    class HandleSetFeedingParametersRequestBehaviour(CyclicBehaviour):
-        """Handle set_feeding_parameters_request and reply with agree (set_feeding_parameters_response)."""
+    # class HandleSetFeedingParametersRequestBehaviour(CyclicBehaviour):
+    #     """Handle set_feeding_parameters_request and reply with agree (set_feeding_parameters_response)."""
 
-        async def run(self):
-            msg = await self.receive(timeout=30)
+    #     async def run(self):
+    #         msg = await self.receive(timeout=30)
             
-            # obsluzenie błędów
-            if not msg:
-                return
+    #         # obsluzenie błędów
+    #         if not msg:
+    #             return
 
-            if msg.metadata.get("protocol") != FishCaretakerAgent.SET_FEEDING_PARAMETERS_REQUEST:
-                return
+    #         if msg.metadata.get("protocol") != FishCaretakerAgent.SET_FEEDING_PARAMETERS_REQUEST:
+    #             return
 
-            try:
-                new_params = json.loads(msg.body)
-            except json.JSONDecodeError:
-                logger.error("[Feeder] Invalid JSON in set_feeding_parameters_request")
-                return
+    #         try:
+    #             new_params = json.loads(msg.body)
+    #         except json.JSONDecodeError:
+    #             logger.error("[Feeder] Invalid JSON in set_feeding_parameters_request")
+    #             return
 
-            # Minimalna walidacja
-            portion = float(new_params.get("portion", self.agent.feeding_parameters["portion"]))
-            interval_s = int(new_params.get("interval_s", self.agent.feeding_parameters["interval_s"]))
+    #         # Minimalna walidacja
+    #         portion = float(new_params.get("portion", self.agent.feeding_parameters["portion"]))
+    #         interval_s = int(new_params.get("interval_s", self.agent.feeding_parameters["interval_s"]))
             
-            # zabezpieczenie zeby nie wywolywac caly czas przy ustawieniu na 0
-            interval_s = max(1, interval_s)
-            self.agent.feeding_parameters = {"portion": portion, "interval_s": interval_s}
-            self.agent.feeding_update_event.set()
+    #         # zabezpieczenie zeby nie wywolywac caly czas przy ustawieniu na 0
+    #         interval_s = max(1, interval_s)
+    #         self.agent.feeding_parameters = {"portion": portion, "interval_s": interval_s}
+    #         self.agent.feeding_update_event.set()
 
-            logger.info(f"[Feeder] Updated feeding parameters to: {self.agent.feeding_parameters}")
+    #         logger.info(f"[Feeder] Updated feeding parameters to: {self.agent.feeding_parameters}")
 
-            # Odpowiedź "agree"
-            reply = msg.make_reply()
-            reply.metadata["protocol"] = FishCaretakerAgent.SET_FEEDING_PARAMETERS_RESPONSE
-            reply.metadata["performative"] = "agree"
-            reply.body = json.dumps(
-                {
-                    "status": "ok",
-                    "feeding_parameters": self.agent.feeding_parameters,
-                }
-            )
-            await self.send(reply)
+    #         # Odpowiedź "agree"
+    #         reply = msg.make_reply()
+    #         reply.metadata["protocol"] = FishCaretakerAgent.SET_FEEDING_PARAMETERS_RESPONSE
+    #         reply.metadata["performative"] = "agree"
+    #         reply.body = json.dumps(
+    #             {
+    #                 "status": "ok",
+    #                 "feeding_parameters": self.agent.feeding_parameters,
+    #             }
+    #         )
+    #         await self.send(reply)
 
 
     class FeedingBehaviour(PeriodicBehaviour):
@@ -293,7 +292,7 @@ class FishCaretakerAgent(Agent):
             logger.info(f"[Feeder] Feeding done: {eaten:.2f} kg. Supplies left: {self.agent.food_supplies_kg:.2f} kg")
 
         async def check_food_supplies(self):
-            """
+            """git
             Bezpieczeństwo roli:
             food_supplies < required_food_supplies => order_food_need = true
             """
@@ -326,7 +325,7 @@ class FishCaretakerAgent(Agent):
         logger.info("Agent setup complete")
 
         await self.DEI_setup()
-        await self.FishHealthManager_setup()
+        # await self.FishHealthManager_setup()
         await self.Feeder_setup()
 
     async def DEI_setup(self):
@@ -348,10 +347,10 @@ class FishCaretakerAgent(Agent):
         register_fish_data_behaviour = self.RegisterFishDataBehaviour()
         self.add_behaviour(register_fish_data_behaviour, fish_data_template)
 
-    async def FishHealthManager_setup(self):
-        fish_health_manager_behaviour = self.FishHealthManagerBehaviour()
+    # async def FishHealthManager_setup(self):
+    #     fish_health_manager_behaviour = self.FishHealthManagerBehaviour()
 
-        self.add_behaviour(fish_health_manager_behaviour)
+    #     self.add_behaviour(fish_health_manager_behaviour)
 
     # async def Feeder_setup(self):
     #     feeding_behaviour = self.FeedingBehaviour(period=20)
@@ -359,9 +358,10 @@ class FishCaretakerAgent(Agent):
 
     async def Feeder_setup(self):
         # Handler request -> response (set_feeding_parameters_request/response)
-        feeder_req_template = Template(metadata={"protocol": FishCaretakerAgent.SET_FEEDING_PARAMETERS_REQUEST})
-        self.add_behaviour(self.HandleSetFeedingParametersRequestBehaviour(), feeder_req_template)
+        # feeder_req_template = Template(metadata={"protocol": FishCaretakerAgent.SET_FEEDING_PARAMETERS_REQUEST})
+        # self.add_behaviour(self.HandleSetFeedingParametersRequestBehaviour(), feeder_req_template)
 
         # Karmienie cykliczne – okres bierzemy z parametrów (startowo 20s)
         feeding_behaviour = self.FeedingBehaviour(period=int(self.feeding_parameters.get("interval_s", 20)))
+
         self.add_behaviour(feeding_behaviour)
