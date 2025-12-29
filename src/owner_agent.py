@@ -60,7 +60,7 @@ class OwnerAgent(Agent):
         logger.info("Restocking needed")
     
     def register_stocking(self):
-        #@TODO Consider if this activity is needed, maybe add this to GUI (?)
+        #@TODO Add this to owner GUI
         pass
 
     class HandleIfCanEnterRequestBehaviour(CyclicBehaviour):
