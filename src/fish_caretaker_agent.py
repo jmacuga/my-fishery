@@ -13,6 +13,7 @@ logger = get_logger("FishCaretakerAgent")
 class FishCaretakerAgent(Agent):
     REGISTER_FISH_DATA_RESPONSE = "response_fish_data_response"
     SEND_NEEDS_STOCKING_ALARM = "send_needs_stocking_alarm"
+    # FISH_SIZE_RESPONSE = "fish_size_response"
 
     def __init__(self, jid, password, owner_jid):
         super().__init__(jid, password)
@@ -21,6 +22,9 @@ class FishCaretakerAgent(Agent):
         self.fishes_taken = {}
         self.z_score_needs_restocking_alarm_point = 0.5
         self.owner_jid = owner_jid
+
+        self.feeding_parameters = {"portion": 0.0}
+        self.set_feeding_parameters_event = asyncio.Event()
 
     # ========== DEI ==========
 
@@ -50,7 +54,7 @@ class FishCaretakerAgent(Agent):
                 index = max(abs(camera_z_score), abs(sonar_z_score))
                 return (index < self.agent.z_score_needs_restocking_alarm_point), index
             return False, None
-                
+
         async def send_needs_stocking_alarm(self, z_score):
             logger.warning(f"ALERT: Not enough fish! z_score: {z_score}")
 
@@ -115,28 +119,34 @@ class FishCaretakerAgent(Agent):
 
     class FishHealthManagerBehaviour(CyclicBehaviour):
         async def run(self):
-            pass
-
-        async def register_fish_size_response(self):
-            pass
-
-        async def calculate_fish_avg_size(self):
-            pass
+            self.revaluate_feeding()
+            await asyncio.sleep(5)
 
         async def revaluate_feeding(self):
-            pass
+            """Calculate current feeding parameters based on fish data"""
+            if self.check_fish_state():
+                await self.set_feeding_parameters_request(0.0)
 
-        async def set_feeding_parameters_request(self):
-            pass
+        async def set_feeding_parameters_request(self, feeding_parameters):
+            """Request for Feeder to change feeding parameters"""
+            logger.info("[FishHealthManager] New feeding parameters acknowledged")
+            self.agent.feeding_parameters = feeding_parameters
+            self.agent.feeding_update_event.set()
+
+        def check_fish_state(self):
+            return self.agent.camera_data.mean() > 10 and self.agent.sonar_data.mean() > 10
+
 
     # ========== Feeder ==========
 
     class FeedingBehaviour(PeriodicBehaviour):
         async def run(self):
-            pass
+            await self.set_feeding_parameters_response()
 
         async def set_feeding_parameters_response(self):
-            pass
+            if self.agent.feeding_update_event.is_set():
+                logger.info("[Feeder] New feeding parameters acknowledged")
+                self.agent.feeding_update_event.clear()
 
         def feed(self):
             pass
@@ -146,6 +156,8 @@ class FishCaretakerAgent(Agent):
 
         async def order_food(self):
             print("[FISHCARETAKER][FEEDER] Food ordered (email sent)")
+
+    # ========== Setup ==========
 
     async def setup(self):
         logger.info("Agent setup complete")
@@ -168,8 +180,9 @@ class FishCaretakerAgent(Agent):
         self.add_behaviour(register_fish_data_behaviour, fish_data_template)
 
     async def FishHealthManager_setup(self):
-        self.add_behaviour(self.FishHealthManagerBehaviour())
+        fish_health_manager_behaviour = self.FishHealthManagerBehaviour()
 
+        self.add_behaviour(fish_health_manager_behaviour)
 
     async def Feeder_setup(self):
         feeding_behaviour = self.FeedingBehaviour(period=20)
