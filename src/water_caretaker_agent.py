@@ -29,8 +29,10 @@ class WaterCaretakerAgent(Agent):
         async def run(self):
             await self.collect_data()
 
-        def aeration(self):
+        async def aeration(self):
             logger.info("Aeration started (pump ON)")
+            await asyncio.sleep(5)
+            logger.info("Aeration ended (pump OFF)")
 
         async def send_water_quality_alarm(self, z_score):
             logger.warning(f"ALERT: Unusual pH change! z_score: {z_score}")
@@ -42,7 +44,7 @@ class WaterCaretakerAgent(Agent):
             )
             await self.send(msg)
 
-            self.aeration()
+            await self.aeration()
 
         async def collect_data(self):
             ph_data = get_random_data(10, 5)
