@@ -1,12 +1,131 @@
 import json
-from uuid import uuid4 as uuid
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 from .logger_config import get_logger
 from .protocols import Protocols
+from uuid import uuid4 as uuid
+
+import asyncio
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 logger = get_logger("OwnerAgent")
+
+console = Console()
+
+
+import asyncio
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+console = Console()
+
+class RichMenuBehaviourMixin:
+    """
+    Mixin z logiką menu identyczną jak w FisherAgent:
+    - Panel z menu
+    - async input przez run_in_executor
+    - prosta pętla wyboru akcji
+    """
+
+    MENU_TITLE = "AGENT"
+    BORDER_STYLE = "cyan"
+
+    def menu_items(self) -> list[tuple[str, str]]:
+        """
+        Zwraca listę (key, opis). Np: [("1","Pokaż status"), ...]
+        """
+        return []
+
+    def render_menu(self):
+        agent_name = str(self.agent.jid).split("@")[0]
+        items = "\n".join([f"[bold cyan]{k}[/bold cyan] - {desc}" for k, desc in self.menu_items()])
+        menu_text = f"""
+{items}
+
+[dim]Agent: {agent_name}[/dim]
+        """
+        console.print(Panel(
+            menu_text,
+            title=f"[bold green]{self.MENU_TITLE}[/bold green] - {agent_name.upper()} - Available Actions",
+            border_style=self.BORDER_STYLE,
+            padding=(1, 2),
+        ))
+
+    async def read_choice(self) -> str:
+        loop = asyncio.get_event_loop()
+        choice = await loop.run_in_executor(None, lambda: console.input("[bold cyan]Enter action number: [/bold cyan]"))
+        return choice.strip()
+    
+from spade.behaviour import CyclicBehaviour
+
+class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
+    MENU_TITLE = "OWNER AGENT"
+    BORDER_STYLE = "magenta"
+
+    async def on_start(self):
+        self.render_menu()
+
+    def menu_items(self):
+        return [
+            ("1", "Show status"),
+            ("2", "Show active fishermen list"),
+            ("3", "Recommend stocking (log)"),
+            ("0", "Exit program"),
+        ]
+
+    async def run(self):
+        try:
+            choice = await self.read_choice()
+
+            if choice == "1":
+                self.show_status()
+            elif choice == "2":
+                self.show_fishermen()
+            elif choice == "3":
+                self.agent.recommend_stocking()
+                console.print("[yellow]Stocking recommendation triggered (see logs).[/yellow]")
+            elif choice == "0":
+                console.print("[yellow]Exiting...[/yellow]")
+                await self.agent.stop()
+                self.kill()
+                return
+            else:
+                console.print("[red]Invalid input. Please choose from menu.[/red]")
+
+            self.render_menu()
+
+        except (EOFError, KeyboardInterrupt):
+            console.print("\n[yellow]Exiting...[/yellow]")
+            await self.agent.stop()
+            self.kill()
+
+    def show_status(self):
+        t = Table(title="Owner Status", show_header=True, header_style="bold magenta")
+        t.add_column("Property", style="cyan")
+        t.add_column("Value", style="green")
+
+        t.add_row("Active fishermen", f"{len(self.agent.active_fishermen)}/{self.agent.fisherman_limit}")
+        t.add_row("Fishes taken today", f"{self.agent.fishes_taken_count}/{self.agent.fish_takes_limit}")
+
+        console.print(t)
+
+    def show_fishermen(self):
+        if not self.agent.active_fishermen:
+            console.print("[dim]No active fishermen.[/dim]")
+            return
+
+        t = Table(title="Active Fishermen", show_header=True, header_style="bold blue")
+        t.add_column("#", style="cyan", width=3)
+        t.add_column("JID", style="green")
+
+        for i, jid in enumerate(sorted(self.agent.active_fishermen), 1):
+            t.add_row(str(i), jid)
+
+        console.print(t)
 
 
 class OwnerAgent(Agent):
@@ -224,6 +343,8 @@ class OwnerAgent(Agent):
         self.setup_take_fish_permission()
         self.setup_exit_registration()
         self.setup_water_alarm()
+
+        self.add_behaviour(OwnerUserGUI())
 
     def setup_if_can_enter(self):
         fisher_template = Template(
