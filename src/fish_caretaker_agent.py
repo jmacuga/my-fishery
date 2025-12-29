@@ -18,6 +18,7 @@ class FishCaretakerAgent(Agent):
         super().__init__(jid, password)
         self.camera_data = []
         self.sonar_data = []
+        self.fishes_taken = {}
         self.z_score_needs_restocking_alarm_point = 0.5
         self.owner_jid = owner_jid
 
@@ -51,11 +52,11 @@ class FishCaretakerAgent(Agent):
             return False, None
                 
         async def send_needs_stocking_alarm(self, z_score):
-            logger.warning(f"ALERT: Too little fishes! z_score: {z_score}")
+            logger.warning(f"ALERT: Not enough fish! z_score: {z_score}")
 
             msg = Message(
                 to=self.agent.owner_jid,
-                body=f"Too little fishes, z_score value: {z_score}",
+                body=f"Not enough fish, z_score value: {z_score}",
                 metadata={"performative": "alarm", "protocol": FishCaretakerAgent.SEND_NEEDS_STOCKING_ALARM}
             )
             await self.send(msg)
@@ -80,6 +81,13 @@ class FishCaretakerAgent(Agent):
                     # Process fish data (update fish stock estimates, etc.)
                     # This is where you would update the fish stock database
                     # For now, just log it
+
+                    # Register data in dict
+                    if msg.sender not in self.agent.fishes_taken.keys():
+                        self.agent.fishes_taken[msg.sender] = []
+                    self.agent.fishes_taken[msg.sender].append(fish_data)
+
+                    logger.info(f"Currently taken fishes: {self.agent.fishes_taken}")
 
                     # Send confirmation
                     reply = msg.make_reply()
