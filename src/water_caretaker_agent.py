@@ -1,5 +1,6 @@
 import asyncio
 import json
+from uuid import uuid4 as uuid
 from spade.agent import Agent
 from spade.behaviour import PeriodicBehaviour
 from spade.message import Message
@@ -40,6 +41,9 @@ class WaterCaretakerAgent(Agent):
                         "performative": "request",
                         "protocol": Protocols.SEND_WATER_QUALITY_ALARM.value,
                         "language": "JSON",
+                        "reply-with": str(uuid()),
+                        "conversation-id": str(uuid()),
+                        "in-reply-to": str(uuid()),
                     },
                 )
                 await self.send(msg)
