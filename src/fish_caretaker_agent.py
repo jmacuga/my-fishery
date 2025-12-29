@@ -6,15 +6,12 @@ from spade.message import Message
 from .logger_config import get_logger
 
 from .misc import get_random_data, calculate_z_score
+from .protocols import Protocols
 
 logger = get_logger("FishCaretakerAgent")
 
 
 class FishCaretakerAgent(Agent):
-    REGISTER_FISH_DATA_RESPONSE = "response_fish_data_response"
-    SEND_NEEDS_STOCKING_ALARM = "send_needs_stocking_alarm"
-    # FISH_SIZE_RESPONSE = "fish_size_response"
-
     def __init__(self, jid, password, owner_jid):
         super().__init__(jid, password)
         self.camera_data = []
@@ -60,11 +57,14 @@ class FishCaretakerAgent(Agent):
 
             msg = Message(
                 to=self.agent.owner_jid,
-                body=f"Not enough fish, z_score value: {z_score}",
-                metadata={"performative": "alarm", "protocol": FishCaretakerAgent.SEND_NEEDS_STOCKING_ALARM}
+                body=f"Too little fishes, z_score value: {z_score}",
+                metadata={
+                    "performative": "request",
+                    "protocol": Protocols.SEND_NEEDS_STOCKING_ALARM.value,
+                    "language": "JSON",
+                },
             )
             await self.send(msg)
-
 
     class RegisterFishDataBehaviour(CyclicBehaviour):
         """Handle fish data registration from fishermen (register_fish_data_request)"""
@@ -72,7 +72,6 @@ class FishCaretakerAgent(Agent):
         async def run(self):
             msg = await self.receive(timeout=30)
             if msg:
-                protocol = msg.metadata.get("protocol", "")
                 try:
                     fish_data = json.loads(msg.body)
                     species = fish_data.get("species", "Unknown")
@@ -80,7 +79,9 @@ class FishCaretakerAgent(Agent):
                     mass = fish_data.get("mass", 0)
                     time = fish_data.get("time", "")
 
-                    logger.info(f"[DEI] Received fish data registration from {msg.sender}: species={species}, size={size}, mass={mass}kg, time={time}")
+                    logger.info(
+                        f"[DEI] Received fish data registration from {msg.sender}: species={species}, size={size}, mass={mass}kg, time={time}"
+                    )
 
                     # Process fish data (update fish stock estimates, etc.)
                     # This is where you would update the fish stock database
@@ -95,7 +96,9 @@ class FishCaretakerAgent(Agent):
 
                     # Send confirmation
                     reply = msg.make_reply()
-                    reply.metadata["protocol"] = FishCaretakerAgent.REGISTER_FISH_DATA_RESPONSE
+                    reply.metadata["protocol"] = (
+                        Protocols.REGISTER_FISH_DATA_RESPONSE.value
+                    )
                     reply.body = json.dumps(
                         {
                             "status": "registered",
@@ -103,13 +106,13 @@ class FishCaretakerAgent(Agent):
                         }
                     )
                     reply.metadata["performative"] = "agree"
+                    reply.metadata["language"] = "JSON"
 
                     logger.debug("[DEI] Fish data registration confirmed")
 
                     await self.send(reply)
                 except json.JSONDecodeError:
                     logger.error("[DEI] Error parsing fish data from message")
-
 
     ##TODO - add to some behaviour vvvv
     async def set_diversity_target_response(self):
@@ -134,8 +137,9 @@ class FishCaretakerAgent(Agent):
             self.agent.feeding_update_event.set()
 
         def check_fish_state(self):
-            return self.agent.camera_data.mean() > 10 and self.agent.sonar_data.mean() > 10
-
+            return (
+                self.agent.camera_data.mean() > 10 and self.agent.sonar_data.mean() > 10
+            )
 
     # ========== Feeder ==========
 
@@ -167,7 +171,7 @@ class FishCaretakerAgent(Agent):
         await self.Feeder_setup()
 
     async def DEI_setup(self):
-        from .fisher_agent import FisherAgent
+
         # Monitor fish state
         self.add_behaviour(self.MonitorFishState())
 
@@ -175,7 +179,13 @@ class FishCaretakerAgent(Agent):
         self.add_behaviour(self.ManageRestocking())
 
         # Register fish data handler
-        fish_data_template = Template(metadata={"protocol": FisherAgent.REGISTER_FISH_DATA_REQUEST})
+        fish_data_template = Template(
+            metadata={
+                "protocol": Protocols.REGISTER_FISH_DATA_REQUEST.value,
+                "performative": "request",
+                "language": "JSON",
+            }
+        )
         register_fish_data_behaviour = self.RegisterFishDataBehaviour()
         self.add_behaviour(register_fish_data_behaviour, fish_data_template)
 

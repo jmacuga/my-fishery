@@ -1,25 +1,20 @@
 import asyncio
-import math
-
+import json
 from spade.agent import Agent
 from spade.behaviour import PeriodicBehaviour
 from spade.message import Message
-
-from random import normalvariate
 from .logger_config import get_logger
 from .misc import get_random_data, calculate_z_score
+from .protocols import Protocols
 
 logger = get_logger("WaterCaretakerAgent")
 
-class WaterCaretakerAgent(Agent):
-    SEND_WATER_QUALITY_ALARM = "send_water_quality_alarm"
 
-    def __init__(self, jid, password, owner_jid, logs_out=True):
+class WaterCaretakerAgent(Agent):
+    def __init__(self, jid, password, owner_jid):
         super().__init__(jid, password)
 
         self.owner_jid = owner_jid
-        self.logs_out = logs_out
-
         self.ph_data = []
 
         self.last_values = 10
@@ -36,15 +31,21 @@ class WaterCaretakerAgent(Agent):
 
         async def send_water_quality_alarm(self, z_score):
             logger.warning(f"ALERT: Unusual pH change! z_score: {z_score}")
-
-            msg = Message(
-                to=self.agent.owner_jid,
-                body=f"Water quality alarm, z_score value: {z_score}",
-                metadata={"performative": "alarm", "protocol": WaterCaretakerAgent.SEND_WATER_QUALITY_ALARM},
-            )
-            await self.send(msg)
-
-            await self.aeration()
+            payload = {"z_score": z_score, "ph_data": self.agent.ph_data}
+            try:
+                msg = Message(
+                    to=self.agent.owner_jid,
+                    body=json.dumps(payload),
+                    metadata={
+                        "performative": "request",
+                        "protocol": Protocols.SEND_WATER_QUALITY_ALARM.value,
+                        "language": "JSON",
+                    },
+                )
+                await self.send(msg)
+                self.aeration()
+            except json.JSONDecodeError as e:
+                logger.error(f"JSONDecodeError while sending quality alarm: {e}")
 
         async def collect_data(self):
             ph_data = get_random_data(10, 5)
