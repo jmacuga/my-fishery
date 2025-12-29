@@ -43,7 +43,7 @@ class WaterCaretakerAgent(Agent):
                     },
                 )
                 await self.send(msg)
-                self.aeration()
+                await self.aeration()
             except json.JSONDecodeError as e:
                 logger.error(f"JSONDecodeError while sending quality alarm: {e}")
 

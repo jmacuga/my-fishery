@@ -54,17 +54,25 @@ class FishCaretakerAgent(Agent):
 
         async def send_needs_stocking_alarm(self, z_score):
             logger.warning(f"ALERT: Not enough fish! z_score: {z_score}")
-
-            msg = Message(
-                to=self.agent.owner_jid,
-                body=f"Too little fishes, z_score value: {z_score}",
-                metadata={
-                    "performative": "request",
-                    "protocol": Protocols.SEND_NEEDS_STOCKING_ALARM.value,
-                    "language": "JSON",
-                },
-            )
-            await self.send(msg)
+            payload = {
+                "z_score": {z_score},
+                "message": "Not enough fish - fishery needs stocking",
+            }
+            try:
+                msg = Message(
+                    to=self.agent.owner_jid,
+                    body=json.dumps(payload),
+                    metadata={
+                        "performative": "request",
+                        "protocol": Protocols.SEND_NEEDS_STOCKING_ALARM.value,
+                        "language": "JSON",
+                    },
+                )
+                await self.send(msg)
+            except json.JSONDecodeError as e:
+                logger.error(
+                    f"Exception while sending nedds stocking alarm. Reason: {e}"
+                )
 
     class RegisterFishDataBehaviour(CyclicBehaviour):
         """Handle fish data registration from fishermen (register_fish_data_request)"""

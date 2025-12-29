@@ -251,8 +251,6 @@ class OwnerAgent(Agent):
         self.add_behaviour(exit_behaviour, exit_template)
 
     def setup_water_alarm(self):
-        from .water_caretaker_agent import WaterCaretakerAgent
-
         water_alarm_template = Template(
             to=self.jid,
             sender=self.water_caretaker_jid,
