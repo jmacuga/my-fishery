@@ -365,7 +365,7 @@ class FisherAgent(Agent):
                     fish_data = self.agent.pending_take_fish_request
                     self.agent.pending_take_fish_request = None
 
-                    if performative == "inform":
+                    if performative == "agree":
                         try:
                             response_data = json.loads(msg.body)
                             if response_data.get("permission") == "granted":
@@ -527,7 +527,7 @@ class FisherAgent(Agent):
         fish_data_response_template = Template(
             metadata={
                 "protocol": Protocols.REGISTER_FISH_DATA_RESPONSE.value,
-                "performative": "inform",
+                "performative": "agree",
                 "language": "JSON",
             }
         )

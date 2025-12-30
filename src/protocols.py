@@ -12,4 +12,3 @@ class Protocols(Enum):
     REGISTER_FISH_DATA_RESPONSE = "response_fish_data_response"
     SEND_NEEDS_STOCKING_ALARM = "send_needs_stocking_alarm"
     SEND_WATER_QUALITY_ALARM = "send_water_quality_alarm"
-    WATER_QUALITY_ALARM = "water_quality_alarm"
