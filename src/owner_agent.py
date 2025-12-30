@@ -20,6 +20,7 @@ logger = get_logger("OwnerAgent")
 
 console = Console()
 
+
 class RichMenuBehaviourMixin:
     """
     Mixin z logiką menu identyczną jak w FisherAgent:
@@ -39,25 +40,33 @@ class RichMenuBehaviourMixin:
 
     def render_menu(self):
         agent_name = str(self.agent.jid).split("@")[0]
-        items = "\n".join([f"[bold cyan]{k}[/bold cyan] - {desc}" for k, desc in self.menu_items()])
+        items = "\n".join(
+            [f"[bold cyan]{k}[/bold cyan] - {desc}" for k, desc in self.menu_items()]
+        )
         menu_text = f"""
 {items}
 
 [dim]Agent: {agent_name}[/dim]
         """
-        console.print(Panel(
-            menu_text,
-            title=f"[bold green]{self.MENU_TITLE}[/bold green] - {agent_name.upper()} - Available Actions",
-            border_style=self.BORDER_STYLE,
-            padding=(1, 2),
-        ))
+        console.print(
+            Panel(
+                menu_text,
+                title=f"[bold green]{self.MENU_TITLE}[/bold green] - {agent_name.upper()} - Available Actions",
+                border_style=self.BORDER_STYLE,
+                padding=(1, 2),
+            )
+        )
 
     async def read_choice(self) -> str:
         loop = asyncio.get_event_loop()
-        choice = await loop.run_in_executor(None, lambda: console.input("[bold cyan]Enter action number: [/bold cyan]"))
+        choice = await loop.run_in_executor(
+            None, lambda: console.input("[bold cyan]Enter action number: [/bold cyan]")
+        )
         return choice.strip()
 
+
 from spade.behaviour import CyclicBehaviour
+
 
 class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
     MENU_TITLE = "OWNER AGENT"
@@ -97,7 +106,9 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
                         console.print("[red]Restocking rejected[/red]")
 
                     self.render_menu()
-                    console.print("[bold cyan]Enter action number:[/bold cyan] ", end="")
+                    console.print(
+                        "[bold cyan]Enter action number:[/bold cyan] ", end=""
+                    )
                 else:
                     await asyncio.sleep(0.1)
                 return
@@ -107,26 +118,32 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
                 self.agent.pending_stocking_prompt.clear()
 
                 payload = self.agent.last_stocking_alarm or {}
-                console.print('\n')
-                console.print(Panel(
-                    f"[bold yellow]Fish stock low![/bold yellow]\n"
-                    f"{payload}\n\n"
-                    f"[bold]Do you want to restock? (y/n)[/bold]\n"
-                    f"[dim]Write answer and press Enter[/dim]",
-                    title="STOCKING DECISION",
-                    border_style="yellow"
-                ))
+                console.print("\n")
+                console.print(
+                    Panel(
+                        f"[bold yellow]Fish stock low![/bold yellow]\n"
+                        f"{payload}\n\n"
+                        f"[bold]Do you want to restock? (y/n)[/bold]\n"
+                        f"[dim]Write answer and press Enter[/dim]",
+                        title="STOCKING DECISION",
+                        border_style="yellow",
+                    )
+                )
 
                 # jeśli menu input już działa, użyj go jako "odpowiedzi"
                 if self._input_future is None:
-                    self._input_future = loop.run_in_executor(None, lambda: console.input("> "))
+                    self._input_future = loop.run_in_executor(
+                        None, lambda: console.input("> ")
+                    )
 
                 self._awaiting_stocking_answer = True
                 return
 
             # === 2) Normalny tryb: uruchom input menu tylko jeśli nie ma ===
             if self._input_future is None:
-                self._input_future = loop.run_in_executor(None, lambda: console.input(""))
+                self._input_future = loop.run_in_executor(
+                    None, lambda: console.input("")
+                )
 
             # jeśli user wpisał już wybór
             if self._input_future.done():
@@ -139,7 +156,9 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
                     self.show_fishermen()
                 elif choice == "3":
                     self.agent.recommend_stocking()
-                    console.print("[yellow]Stocking recommendation triggered (see logs).[/yellow]")
+                    console.print(
+                        "[yellow]Stocking recommendation triggered (see logs).[/yellow]"
+                    )
                 elif choice == "0":
                     console.print("[yellow]Exiting...[/yellow]")
                     await self.agent.stop()
@@ -159,15 +178,19 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
             await self.agent.stop()
             self.kill()
 
-
-
     def show_status(self):
         t = Table(title="Owner Status", show_header=True, header_style="bold magenta")
         t.add_column("Property", style="cyan")
         t.add_column("Value", style="green")
 
-        t.add_row("Active fishermen", f"{len(self.agent.active_fishermen)}/{self.agent.fisherman_limit}")
-        t.add_row("Fishes taken today", f"{self.agent.fishes_taken_count}/{self.agent.fish_takes_limit}")
+        t.add_row(
+            "Active fishermen",
+            f"{len(self.agent.active_fishermen)}/{self.agent.fisherman_limit}",
+        )
+        t.add_row(
+            "Fishes taken today",
+            f"{self.agent.fishes_taken_count}/{self.agent.fish_takes_limit}",
+        )
 
         console.print(t)
 
@@ -263,7 +286,9 @@ class OwnerAgent(Agent):
 
             # zapisz payload (jeśli JSON – można sparsować)
             try:
-                self.agent.last_stocking_alarm = json.loads(msg.body) if msg.body else {}
+                self.agent.last_stocking_alarm = (
+                    json.loads(msg.body) if msg.body else {}
+                )
             except Exception:
                 self.agent.last_stocking_alarm = {"raw": msg.body}
 
@@ -349,7 +374,7 @@ class OwnerAgent(Agent):
                                 "message": "You can take this fish.",
                             }
                         )
-                        reply.metadata["performative"] = "inform"
+                        reply.metadata["performative"] = "agree"
                         self.agent.fishes_taken_count += 1
                         logger.info(
                             f"Permission granted. Fishes taken today: {self.agent.fishes_taken_count}/{self.agent.fish_takes_limit}"
@@ -361,7 +386,7 @@ class OwnerAgent(Agent):
                                 "message": "Daily fish take limit exceeded.",
                             }
                         )
-                        reply.metadata["performative"] = "disconfirm"
+                        reply.metadata["performative"] = "refuse"
                         logger.warning(
                             f"Permission denied. Daily limit reached: {self.agent.fishes_taken_count}/{self.agent.fish_takes_limit}"
                         )
@@ -484,7 +509,7 @@ class OwnerAgent(Agent):
             to=self.jid,
             sender=self.water_caretaker_jid,
             metadata={
-                "protocol": Protocols.WATER_QUALITY_ALARM.value,
+                "protocol": Protocols.SEND_WATER_QUALITY_ALARM.value,
                 "performative": "request",
                 "language": "JSON",
             },
