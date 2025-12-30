@@ -56,7 +56,7 @@ class RichMenuBehaviourMixin:
         loop = asyncio.get_event_loop()
         choice = await loop.run_in_executor(None, lambda: console.input("[bold cyan]Enter action number: [/bold cyan]"))
         return choice.strip()
-    
+
 from spade.behaviour import CyclicBehaviour
 
 class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
@@ -75,10 +75,9 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
         return [
             ("1", "Show status"),
             ("2", "Show active fishermen list"),
-            ("3", "Recommend stocking (log)"),
             ("0", "Exit program"),
         ]
-    
+
     async def run(self):
         loop = asyncio.get_running_loop()
 
@@ -112,7 +111,7 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
                 console.print(Panel(
                     f"[bold yellow]Fish stock low![/bold yellow]\n"
                     f"{payload}\n\n"
-                    f"[bold]Do you want to restock? (t/n)[/bold]\n"
+                    f"[bold]Do you want to restock? (y/n)[/bold]\n"
                     f"[dim]Write answer and press Enter[/dim]",
                     title="STOCKING DECISION",
                     border_style="yellow"

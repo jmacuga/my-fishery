@@ -29,7 +29,7 @@ class FishCaretakerAgent(Agent):
 
         self.food_supplies_kg = 10.0
         self.required_food_supplies_kg = 2.0
-        self.order_food_need = False      
+        self.order_food_need = False
         self.order_amount_kg = 25.0
 
     # ========== DEI ==========
@@ -56,7 +56,10 @@ class FishCaretakerAgent(Agent):
         def if_needs_stocking(self) -> tuple[bool, Optional[float]]:
             camera_z_score: Optional[float] = calculate_z_score(self.agent.camera_data)
             sonar_z_score: Optional[float] = calculate_z_score(self.agent.sonar_data)
+
             if camera_z_score is not None and sonar_z_score is not None:
+                camera_z_score = round(float(camera_z_score), 2)
+                sonar_z_score = round(float(sonar_z_score), 2)
                 index = max(abs(camera_z_score), abs(sonar_z_score))
                 return (
                     (index < self.agent.z_score_needs_restocking_alarm_point),
@@ -208,7 +211,7 @@ class FishCaretakerAgent(Agent):
 
     #     async def run(self):
     #         msg = await self.receive(timeout=30)
-            
+
     #         # obsluzenie błędów
     #         if not msg:
     #             return
@@ -225,7 +228,7 @@ class FishCaretakerAgent(Agent):
     #         # Minimalna walidacja
     #         portion = float(new_params.get("portion", self.agent.feeding_parameters["portion"]))
     #         interval_s = int(new_params.get("interval_s", self.agent.feeding_parameters["interval_s"]))
-            
+
     #         # zabezpieczenie zeby nie wywolywac caly czas przy ustawieniu na 0
     #         interval_s = max(1, interval_s)
     #         self.agent.feeding_parameters = {"portion": portion, "interval_s": interval_s}
