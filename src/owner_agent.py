@@ -20,14 +20,6 @@ logger = get_logger("OwnerAgent")
 
 console = Console()
 
-
-import asyncio
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-
-console = Console()
-
 class RichMenuBehaviourMixin:
     """
     Mixin z logiką menu identyczną jak w FisherAgent:
@@ -72,9 +64,12 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
     BORDER_STYLE = "magenta"
 
     async def on_start(self):
-        # czekanie na setupowanie
         await asyncio.sleep(2)
         self.render_menu()
+
+        self._input_future = None
+        self._awaiting_stocking_answer = False
+        console.print("[bold cyan]Enter action number:[/bold cyan] ", end="")
 
     def menu_items(self):
         return [
@@ -83,32 +78,89 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
             ("3", "Recommend stocking (log)"),
             ("0", "Exit program"),
         ]
-
+    
     async def run(self):
+        loop = asyncio.get_running_loop()
+
         try:
-            choice = await self.read_choice()
+            # === 0) Jeśli czekamy na odpowiedź stocking, to NIE uruchamiamy nowego inputa ===
+            if self._awaiting_stocking_answer:
+                # czekamy aż ten sam future zwróci linię
+                if self._input_future is not None and self._input_future.done():
+                    ans = (self._input_future.result() or "").strip().lower()
+                    self._input_future = None
+                    self._awaiting_stocking_answer = False
 
-            if choice == "1":
-                self.show_status()
-            elif choice == "2":
-                self.show_fishermen()
-            elif choice == "3":
-                self.agent.recommend_stocking()
-                console.print("[yellow]Stocking recommendation triggered (see logs).[/yellow]")
-            elif choice == "0":
-                console.print("[yellow]Exiting...[/yellow]")
-                await self.agent.stop()
-                self.kill()
+                    if ans in ("t", "tak", "y", "yes"):
+                        console.print("[green]Zarybianie zaakceptowane[/green]")
+                        self.agent.recommend_stocking()
+                    else:
+                        console.print("[red]Zarybianie odrzucone[/red]")
+
+                    self.render_menu()
+                    console.print("[bold cyan]Enter action number:[/bold cyan] ", end="")
+                else:
+                    await asyncio.sleep(0.1)
                 return
-            else:
-                console.print("[red]Invalid input. Please choose from menu.[/red]")
 
-            self.render_menu()
+            # === 1) Najpierw sprawdź alarm ZANIM wystartujesz menu input ===
+            if self.agent.pending_stocking_prompt.is_set():
+                self.agent.pending_stocking_prompt.clear()
+
+                payload = self.agent.last_stocking_alarm or {}
+                console.print('\n')
+                console.print(Panel(
+                    f"[bold yellow]Fish stock low![/bold yellow]\n"
+                    f"{payload}\n\n"
+                    f"[bold]Czy chcesz zarybić? (t/n)[/bold]\n"
+                    f"[dim]Wpisz odpowiedź i Enter[/dim]",
+                    title="STOCKING DECISION",
+                    border_style="yellow"
+                ))
+
+                # jeśli menu input już działa, użyj go jako "odpowiedzi"
+                if self._input_future is None:
+                    self._input_future = loop.run_in_executor(None, lambda: console.input("> "))
+
+                self._awaiting_stocking_answer = True
+                return
+
+            # === 2) Normalny tryb: uruchom input menu tylko jeśli nie ma ===
+            if self._input_future is None:
+                self._input_future = loop.run_in_executor(None, lambda: console.input(""))
+
+            # jeśli user wpisał już wybór
+            if self._input_future.done():
+                choice = (self._input_future.result() or "").strip()
+                self._input_future = None
+
+                if choice == "1":
+                    self.show_status()
+                elif choice == "2":
+                    self.show_fishermen()
+                elif choice == "3":
+                    self.agent.recommend_stocking()
+                    console.print("[yellow]Stocking recommendation triggered (see logs).[/yellow]")
+                elif choice == "0":
+                    console.print("[yellow]Exiting...[/yellow]")
+                    await self.agent.stop()
+                    self.kill()
+                    return
+                elif choice:
+                    console.print("[red]Invalid input. Please choose from menu.[/red]")
+
+                self.render_menu()
+                console.print("[bold cyan]Enter action number:[/bold cyan] ", end="")
+                return
+
+            await asyncio.sleep(0.1)
 
         except (EOFError, KeyboardInterrupt):
             console.print("\n[yellow]Exiting...[/yellow]")
             await self.agent.stop()
             self.kill()
+
+
 
     def show_status(self):
         t = Table(title="Owner Status", show_header=True, header_style="bold magenta")
@@ -149,6 +201,9 @@ class OwnerAgent(Agent):
         self.fishes_taken_count = 0
         self.fish_takes_limit = 50  # Daily limit for fish takes
 
+        self.pending_stocking_prompt = asyncio.Event()
+        self.last_stocking_alarm = None
+
     def check_if_entrance_possible(self, fisherman_jid):
         """
         Check if entrance is possible based on current fisherman count.
@@ -182,9 +237,39 @@ class OwnerAgent(Agent):
         """Recommend stocking for end user"""
         logger.info("Restocking needed")
 
+    def setup_stocking_alarm(self):
+        t = Template(
+            to=self.jid,
+            sender=self.fish_caretaker_jid,
+            metadata={
+                "protocol": Protocols.SEND_NEEDS_STOCKING_ALARM.value,
+                "performative": "request",
+                "language": "JSON",
+            },
+        )
+        b = self.ReceiveNeedsStockingAlarmBehaviour()
+        self.add_behaviour(b, t)
+
     def register_stocking(self):
         # @TODO Add this to owner GUI
         pass
+
+    class ReceiveNeedsStockingAlarmBehaviour(CyclicBehaviour):
+        async def run(self):
+            msg = await self.receive(timeout=30)
+            if not msg:
+                return
+
+            logger.warning(f"NEEDS STOCKING alarm received: {msg.body}")
+
+            # zapisz payload (jeśli JSON – można sparsować)
+            try:
+                self.agent.last_stocking_alarm = json.loads(msg.body) if msg.body else {}
+            except Exception:
+                self.agent.last_stocking_alarm = {"raw": msg.body}
+
+            # ustaw flagę dla GUI
+            self.agent.pending_stocking_prompt.set()
 
     class HandleIfCanEnterRequestBehaviour(CyclicBehaviour):
         async def run(self):
@@ -254,7 +339,7 @@ class OwnerAgent(Agent):
                         Protocols.IF_CAN_TAKE_FISH_RESPONSE.value
                     )
                     reply.metadata["language"] = "JSON"
-                    reply.metadata["reply-with"] == str(uuid())
+                    reply.metadata["reply-with"] = str(uuid())
                     reply.metadata["conversation-id"] = conversation_id
                     reply.metadata["in-reply-to"] = in_reply_to
 
@@ -350,6 +435,7 @@ class OwnerAgent(Agent):
         self.setup_take_fish_permission()
         self.setup_exit_registration()
         self.setup_water_alarm()
+        self.setup_stocking_alarm()
 
         self.add_behaviour(OwnerUserGUI())
 
