@@ -91,11 +91,11 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
                     self._input_future = None
                     self._awaiting_stocking_answer = False
 
-                    if ans in ("t", "tak", "y", "yes"):
-                        console.print("[green]Zarybianie zaakceptowane[/green]")
+                    if ans in ("y", "yes", "n", "no"):
+                        console.print("[green][/green]")
                         self.agent.recommend_stocking()
                     else:
-                        console.print("[red]Zarybianie odrzucone[/red]")
+                        console.print("[red]Restocking rejected[/red]")
 
                     self.render_menu()
                     console.print("[bold cyan]Enter action number:[/bold cyan] ", end="")
@@ -112,8 +112,8 @@ class OwnerUserGUI(CyclicBehaviour, RichMenuBehaviourMixin):
                 console.print(Panel(
                     f"[bold yellow]Fish stock low![/bold yellow]\n"
                     f"{payload}\n\n"
-                    f"[bold]Czy chcesz zarybić? (t/n)[/bold]\n"
-                    f"[dim]Wpisz odpowiedź i Enter[/dim]",
+                    f"[bold]Do you want to restock? (t/n)[/bold]\n"
+                    f"[dim]Write answer and press Enter[/dim]",
                     title="STOCKING DECISION",
                     border_style="yellow"
                 ))
