@@ -62,8 +62,11 @@ class WaterCaretakerAgent(Agent):
 
         async def calculate_quality(self):
             z_score = calculate_z_score(self.agent.ph_data, self.agent.last_values)
-            if z_score is not None and abs(z_score) > self.agent.z_score_alert:
-                await self.send_water_quality_alarm(z_score)
+            if z_score is not None:
+                z_score = round(float(z_score), 2)
+
+                if abs(z_score) > self.agent.z_score_alert:
+                    await self.send_water_quality_alarm(z_score)
 
     async def setup(self):
         logger.info("Agent setup complete")
