@@ -427,7 +427,7 @@ class OwnerAgent(Agent):
                     reply = msg.make_reply()
                     reply.metadata["protocol"] = Protocols.REGISTER_EXIT_RESPONSE.value
                     reply.metadata["language"] = "JSON"
-                    reply.metadata["reply-with"] == str(uuid())
+                    reply.metadata["reply-with"] = str(uuid())
                     reply.metadata["conversation-id"] = conversation_id
                     reply.metadata["in-reply-to"] = in_reply_to
                     reply.body = json.dumps(
