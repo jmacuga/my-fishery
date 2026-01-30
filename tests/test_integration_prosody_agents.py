@@ -128,7 +128,6 @@ class TestProsodyAndAgentsIntegration(unittest.TestCase):
 
             # Start agents (these will attempt XMPP connection to prosody)
             try:
-                # `start()` is a coroutine in some spade versions — await it
                 await owner.start()
                 await water.start()
                 await fish.start()
@@ -139,7 +138,7 @@ class TestProsodyAndAgentsIntegration(unittest.TestCase):
                 self.assertTrue(fish.is_alive())
 
             finally:
-                # Stop agents (these are coroutines)
+                # Stop agents
                 try:
                     await owner.stop()
                 except Exception:
