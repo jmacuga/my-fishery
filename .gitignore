@@ -6,3 +6,7 @@ pycache/
 __pycache__/
 logs/
 *.log
+.vscode/
+.pytest_cache/
+.mypy_cache/
+coverage.xml
