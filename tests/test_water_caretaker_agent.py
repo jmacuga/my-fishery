@@ -26,7 +26,7 @@ class TestWaterQualityBehaviour(unittest.TestCase):
         self.behaviour = self.agent.WaterQualityMeasureBehaviour(period=1)
         self.behaviour.agent = self.agent
 
-    @patch("src.misc.get_random_data")
+    @patch("src.water_caretaker_agent.get_random_data")
     @patch.object(
         WaterCaretakerAgent.WaterQualityMeasureBehaviour,
         "calculate_quality",
