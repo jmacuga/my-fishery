@@ -1,8 +1,8 @@
-# 🐟 MY Fishery
+# 🐟 My Fishery
 
 > **A multi-agent system for intelligent, autonomous fishery management**
 
-MY Fishery is a distributed agent-based simulation that models a real-world aquaculture operation — from fisherman access control and catch quotas to water-quality monitoring, fish-stock analytics, and automated feeding. Agents communicate over **XMPP** using the **SPADE** framework, coordinating decisions asynchronously without a central orchestrator.
+"My Fishery" is a distributed agent-based simulation that models a real-world aquaculture operation — from fisherman access control and catch quotas to water-quality monitoring, fish-stock analytics, and automated feeding. Agents communicate over **XMPP** using the **SPADE** framework, coordinating decisions asynchronously without a central orchestrator.
 
 Built to demonstrate **multi-agent systems (MAS)**, **event-driven architecture**, and **domain-driven agent design** in Python.
 
@@ -12,13 +12,13 @@ Built to demonstrate **multi-agent systems (MAS)**, **event-driven architecture*
 
 Modern fisheries need more than static dashboards — they need systems that **sense, decide, and act** in real time. MY Fishery explores that idea by assigning each responsibility to a dedicated autonomous agent that negotiates with peers through structured protocols.
 
-| Challenge | Agent-based solution |
-|---|---|
-| Who can enter the fishery? | **Owner Agent** enforces capacity limits and tracks active fishermen |
-| Is the water safe? | **Water Caretaker** monitors pH and triggers aeration on anomalies |
-| Are fish stocks healthy? | **Fish Caretaker** analyses camera & sonar data, raises restocking alarms |
-| Can a fisherman keep a catch? | Permission flow between **Fisherman → Owner → Fish Caretaker** |
-| Who feeds the fish? | **Fish Caretaker** manages feeding schedules and food inventory |
+| Challenge                     | Agent-based solution                                                      |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| Who can enter the fishery?    | **Owner Agent** enforces capacity limits and tracks active fishermen      |
+| Is the water safe?            | **Water Caretaker** monitors pH and triggers aeration on anomalies        |
+| Are fish stocks healthy?      | **Fish Caretaker** analyses camera & sonar data, raises restocking alarms |
+| Can a fisherman keep a catch? | Permission flow between **Fisherman → Owner → Fish Caretaker**            |
+| Who feeds the fish?           | **Fish Caretaker** manages feeding schedules and food inventory           |
 
 ---
 
@@ -58,26 +58,31 @@ Each agent runs as an independent **asyncio** process. Fishermen connect on dema
 ## 🚀 Key Features
 
 ### Multi-Agent Coordination
+
 - **SPADE** agents communicating via **XMPP** (Prosody) with FIPA-style performatives (`query_if`, `agree`, `refuse`, `inform`)
 - **Protocol-driven messaging** — every interaction mapped to a named protocol (`if_can_enter`, `register_fish_data`, `send_water_quality_alarm`, …)
 - **Conversation tracking** with `conversation-id` and `reply-with` for reliable request/response flows
 
 ### Smart Environmental Monitoring
+
 - **Water Caretaker** collects pH readings and computes **z-score anomaly detection** on rolling windows
 - Automatic **aeration response** when water quality deviates beyond threshold
 - **Fish Caretaker (DEI)** fuses camera + sonar sensor streams to detect low stock levels
 
 ### Resource & Access Management
+
 - Configurable **fisherman capacity** (default: 10) and **daily catch quota** (default: 50)
 - Entrance deduplication — prevents double-counting fishermen already on site
 - Exit registration with full session bookkeeping
 
 ### Automated Fish Care
+
 - Periodic **feeding behaviour** with portion control and supply tracking
 - **Low-inventory detection** triggers simulated food re-ordering
 - Catch data registration per fisherman for stock analytics
 
 ### Developer Experience
+
 - **Rich terminal UI** — interactive menus and status tables for Owner and Fisherman agents
 - **Structured logging** to `logs/fishery_system.log` with a convenience `view_logs.sh` script
 - **Comprehensive test suite** — unit tests + integration tests covering agent lifecycles, protocol flows, and caretaker behaviours
@@ -86,26 +91,26 @@ Each agent runs as an independent **asyncio** process. Fishermen connect on dema
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language | Python 3.12 |
+| Layer                 | Technology                                        |
+| --------------------- | ------------------------------------------------- |
+| Language              | Python 3.12                                       |
 | Multi-Agent Framework | [SPADE](https://github.com/javipalanca/spade) 4.x |
-| Messaging | XMPP via Prosody |
-| Async Runtime | asyncio + uvloop |
-| Terminal UI | Rich |
-| Testing | pytest |
-| Dependency Management | uv (pip-compile) |
+| Messaging             | XMPP via Prosody                                  |
+| Async Runtime         | asyncio + uvloop                                  |
+| Terminal UI           | Rich                                              |
+| Testing               | pytest                                            |
+| Dependency Management | uv (pip-compile)                                  |
 
 ---
 
 ## 📡 Agent Roles
 
-| Agent | JID | Responsibility |
-|---|---|---|
-| **Owner** | `owner@localhost` | Access control, catch quotas, alarm handling, interactive dashboard |
-| **Water Caretaker** | `water_caretaker@localhost` | pH monitoring, anomaly detection, aeration |
-| **Fish Caretaker** | `fish_caretaker@localhost` | Stock monitoring, feeding, catch registration, restocking alerts |
-| **Fisherman** | `fisher{N}@localhost` | Enter/exit fishery, request catch permission, report catches |
+| Agent               | JID                         | Responsibility                                                      |
+| ------------------- | --------------------------- | ------------------------------------------------------------------- |
+| **Owner**           | `owner@localhost`           | Access control, catch quotas, alarm handling, interactive dashboard |
+| **Water Caretaker** | `water_caretaker@localhost` | pH monitoring, anomaly detection, aeration                          |
+| **Fish Caretaker**  | `fish_caretaker@localhost`  | Stock monitoring, feeding, catch registration, restocking alerts    |
+| **Fisherman**       | `fisher{N}@localhost`       | Enter/exit fishery, request catch permission, report catches        |
 
 ---
 
