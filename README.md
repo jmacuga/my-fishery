@@ -26,32 +26,29 @@ Modern fisheries need more than static dashboards — they need systems that **s
 
 ```mermaid
 flowchart TB
-    subgraph Fishermen["🎣 Fisherman Agents"]
-        F1[fisher1@localhost]
-        F2[fisher2@localhost]
-        F3[fisher3@localhost]
+    subgraph Transport["Messaging Layer"]
+        XMPP[(Prosody XMPP Server)]
     end
 
-    subgraph Core["⚙️ Core Services"]
-        O[Owner Agent]
-        WC[Water Caretaker]
-        FC[Fish Caretaker]
+    subgraph Agents["Agent Layer"]
+        F["Fisherman Agents<br/>fisher1, fisher2, fisher3..."]
+        O["Owner Agent"]
+        WC["Water Caretaker<br/>pH monitoring, aeration"]
+        FC["Fish Caretaker<br/>stock analytics, feeding"]
     end
 
-    XMPP[(Prosody XMPP Server)]
+    F <-->|FIPA ACL| XMPP
+    O <-->|FIPA ACL| XMPP
+    WC <-->|FIPA ACL| XMPP
+    FC <-->|FIPA ACL| XMPP
 
-    F1 & F2 & F3 <-->|FIPA ACL messages| XMPP
-    O & WC & FC <-->|FIPA ACL messages| XMPP
-
-    F1 & F2 & F3 -->|enter / take fish / exit| O
-    F1 & F2 & F3 -->|register catch data| FC
-    WC -->|water quality alarm| O
-    FC -->|stocking alarm| O
-    WC -.->|auto-aeration| WC
-    FC -.->|feeding & food orders| FC
+    F -.->|"enter, take fish, exit"| O
+    F -.->|register catch data| FC
+    WC -.->|water quality alarm| O
+    FC -.->|stocking alarm| O
 ```
 
-Each agent runs as an independent **asyncio** process. Fishermen connect on demand — mirroring how real distributed IoT/edge systems scale.
+Each agent runs as an independent **asyncio** process and connects to Prosody over XMPP. Dashed lines show logical FIPA protocol flows between agents. Fishermen connect on demand — mirroring how real distributed IoT/edge systems scale.
 
 ---
 
